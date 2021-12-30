@@ -19,12 +19,14 @@ package core
 import (
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/trie"
 )
@@ -162,6 +164,7 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 // ValidateState validates the various changes that happen after a state transition,
 // such as amount of used gas, the receipt roots and the state root itself.
 func (v *BlockValidator) ValidateState(block *types.Block, statedb *state.StateDB, receipts types.Receipts, usedGas uint64) error {
+	defer debug.Handler.StartRegionAuto("BlockValidator.ValidateState")()
 	header := block.Header()
 	if block.GasUsed() != usedGas {
 		return fmt.Errorf("invalid gas used (remote: %d local: %d)", block.GasUsed(), usedGas)
@@ -170,6 +173,7 @@ func (v *BlockValidator) ValidateState(block *types.Block, statedb *state.StateD
 	// For valid blocks this should always validate to true.
 	validateFuns := []func() error{
 		func() error {
+			defer debug.Handler.StartRegionAuto("Create Receipt Bloom")()
 			rbloom := types.CreateBloom(receipts)
 			if rbloom != header.Bloom {
 				return fmt.Errorf("invalid bloom (remote: %x  local: %x)", header.Bloom, rbloom)
@@ -177,8 +181,14 @@ func (v *BlockValidator) ValidateState(block *types.Block, statedb *state.StateD
 			return nil
 		},
 		func() error {
+			defer debug.Handler.StartRegionAuto("Create Receipt Root Hash")()
 			receiptSha := types.DeriveSha(receipts, trie.NewStackTrie(nil))
 			if receiptSha != header.ReceiptHash {
+				debug.Handler.LogWhenTracing("block " + block.Number().String() +
+					" len(receipts):" + strconv.Itoa(len(receipts)))
+				for index, r := range receipts {
+					r.DumpWhenTrace(block.Number(), index)
+				}
 				return fmt.Errorf("invalid receipt root hash (remote: %x local: %x)", header.ReceiptHash, receiptSha)
 			}
 			return nil
@@ -186,6 +196,7 @@ func (v *BlockValidator) ValidateState(block *types.Block, statedb *state.StateD
 	}
 	if statedb.IsPipeCommit() {
 		validateFuns = append(validateFuns, func() error {
+			defer debug.Handler.StartRegionAuto("skipHeavyVerify")()
 			if err := statedb.WaitPipeVerification(); err != nil {
 				return err
 			}

@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie/trienode"
@@ -201,6 +202,7 @@ func (s *stateObject) setOriginStorage(key common.Hash, value common.Hash) {
 
 // GetCommittedState retrieves a value from the committed account storage trie.
 func (s *stateObject) GetCommittedState(key common.Hash) common.Hash {
+	defer debug.Handler.StartRegionAuto("GetCommittedState")()
 	// If we have a pending write or clean cached, return that
 	if value, pending := s.pendingStorage[key]; pending {
 		return value
@@ -226,6 +228,7 @@ func (s *stateObject) GetCommittedState(key common.Hash) common.Hash {
 	)
 	if s.db.snap != nil {
 		start := time.Now()
+		region1 := debug.Handler.StartTrace("Snapshot Storage")
 		enc, err = s.db.snap.Storage(s.addrHash, crypto.Keccak256Hash(key.Bytes()))
 		if metrics.EnabledExpensive {
 			s.db.SnapshotStorageReads += time.Since(start)
@@ -237,10 +240,12 @@ func (s *stateObject) GetCommittedState(key common.Hash) common.Hash {
 			}
 			value.SetBytes(content)
 		}
+		debug.Handler.EndTrace(region1)
 	}
 	// If the snapshot is unavailable or reading from it fails, load from the database.
 	if s.db.snap == nil || err != nil {
 		start := time.Now()
+		region2 := debug.Handler.StartTrace("Trie Storage")
 		tr, err := s.getTrie()
 		if err != nil {
 			s.db.setError(err)
@@ -250,6 +255,7 @@ func (s *stateObject) GetCommittedState(key common.Hash) common.Hash {
 		if metrics.EnabledExpensive {
 			s.db.StorageReads += time.Since(start)
 		}
+		debug.Handler.EndTrace(region2)
 		if err != nil {
 			s.db.setError(err)
 			return common.Hash{}
