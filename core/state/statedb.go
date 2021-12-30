@@ -33,6 +33,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/params"
@@ -489,6 +490,7 @@ func (s *StateDB) GetCodeHash(addr common.Address) common.Hash {
 
 // GetState retrieves a value from the given account's storage trie.
 func (s *StateDB) GetState(addr common.Address, hash common.Hash) common.Hash {
+	defer debug.Handler.StartRegionAuto("GetState")()
 	stateObject := s.getStateObject(addr)
 	if stateObject != nil {
 		return stateObject.GetState(hash)
@@ -1154,6 +1156,7 @@ func (s *StateDB) Finalise(deleteEmptyObjects bool) {
 // It is called in between transactions to get the root hash that
 // goes into transaction receipts.
 func (s *StateDB) IntermediateRoot(deleteEmptyObjects bool) common.Hash {
+	defer debug.Handler.StartRegionAuto("StateDB.IntermediateRoot")()
 	// Finalise all the dirty storage states and write them into the tries
 	s.Finalise(deleteEmptyObjects)
 	s.AccountsIntermediateRoot()
@@ -1231,6 +1234,7 @@ func (s *StateDB) populateSnapStorage(obj *stateObject) bool {
 }
 
 func (s *StateDB) AccountsIntermediateRoot() {
+	defer debug.Handler.StartRegionAuto("AccountsIntermediateRoot")()
 	tasks := make(chan func())
 	finishCh := make(chan struct{})
 	defer close(finishCh)
@@ -1275,6 +1279,7 @@ func (s *StateDB) AccountsIntermediateRoot() {
 }
 
 func (s *StateDB) StateIntermediateRoot() common.Hash {
+	defer debug.Handler.StartRegionAuto("StateIntermediateRoot")()
 	// If there was a trie prefetcher operating, it gets aborted and irrevocably
 	// modified after we start retrieving tries. Remove it from the statedb after
 	// this round of use.
@@ -1568,6 +1573,7 @@ func (s *StateDB) handleDestruction(nodes *trienode.MergedNodeSet) (map[common.A
 // for more chain context.
 func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFuncs ...func() error) (common.Hash, *types.DiffLayer, error) {
 	// Short circuit in case any database failure occurred earlier.
+	defer debug.Handler.StartRegionAuto("StateDB.Commit")()
 	if s.dbErr != nil {
 		s.StopPrefetcher()
 		return common.Hash{}, nil, fmt.Errorf("commit aborted due to earlier error: %v", s.dbErr)

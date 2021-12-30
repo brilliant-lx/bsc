@@ -17,10 +17,13 @@
 package core
 
 import (
+	"strconv"
+
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/state"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -49,6 +52,8 @@ func NewStatePrefetcher(config *params.ChainConfig, bc *BlockChain, engine conse
 // the transaction messages using the statedb, but any changes are discarded. The
 // only goal is to pre-cache transaction signatures and state trie nodes.
 func (p *statePrefetcher) Prefetch(block *types.Block, statedb *state.StateDB, cfg *vm.Config, interruptCh <-chan struct{}) {
+	traceMsg := "statePrefetcher " + block.Header().Number.String()
+	defer debug.Handler.StartRegionAuto(traceMsg)()
 	var (
 		header = block.Header()
 		signer = types.MakeSigner(p.config, header.Number, header.Time)
@@ -58,6 +63,8 @@ func (p *statePrefetcher) Prefetch(block *types.Block, statedb *state.StateDB, c
 	// No need to execute the first batch, since the main processor will do it.
 	for i := 0; i < prefetchThread; i++ {
 		go func() {
+			traceMsg := "prefetchThread " + strconv.Itoa(i)
+			defer debug.Handler.StartRegionAuto(traceMsg)()
 			newStatedb := statedb.CopyDoPrefetch()
 			newStatedb.EnableWriteOnSharedStorage()
 			gaspool := new(GasPool).AddGas(block.GasLimit())
@@ -161,6 +168,8 @@ func (p *statePrefetcher) PrefetchMining(txs TransactionsByPriceAndNonce, header
 // and uses the input parameters for its environment. The goal is not to execute
 // the transaction successfully, rather to warm up touched data slots.
 func precacheTransaction(msg *Message, config *params.ChainConfig, gaspool *GasPool, statedb *state.StateDB, header *types.Header, evm *vm.EVM) error {
+	traceMsg := "precacheTransaction"
+	defer debug.Handler.StartRegionAuto(traceMsg)()
 	// Update the evm with the new transaction context.
 	evm.Reset(NewEVMTxContext(msg), statedb)
 	// Add addresses to access list if applicable
