@@ -22,6 +22,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/rlp"
 	"golang.org/x/crypto/sha3"
 )
@@ -85,6 +86,7 @@ func encodeForDerive(list DerivableList, i int, buf *bytes.Buffer) []byte {
 
 // DeriveSha creates the tree hashes of transactions and receipts in a block header.
 func DeriveSha(list DerivableList, hasher TrieHasher) common.Hash {
+	defer debug.Handler.StartRegionAuto("DeriveSha")()
 	hasher.Reset()
 
 	valueBuf := encodeBufferPool.Get().(*bytes.Buffer)

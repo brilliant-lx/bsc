@@ -36,6 +36,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -392,6 +393,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
 		misc.ApplyDAOHardFork(statedb)
 	}
+
 	// Handle upgrade build-in system contract code
 	systemcontracts.UpgradeBuildInSystemContract(p.config, block.Number(), statedb)
 
@@ -399,6 +401,11 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	vmenv := vm.NewEVM(blockContext, vm.TxContext{}, statedb, p.config, cfg)
 
 	txNum := len(block.Transactions())
+
+	debug.Handler.EnableTraceBigBlock(block.Header().Number.Uint64(), txNum, "sequential")
+	debug.Handler.EnableTraceCapture(block.Header().Number.Uint64(), "sequential")
+	traceMsg := "Process " + block.Header().Number.String()
+	defer debug.Handler.StartRegionAuto(traceMsg)()
 	// Iterate over and process the individual transactions
 	posa, isPoSA := p.engine.(consensus.PoSA)
 	commonTxs := make([]*types.Transaction, 0, txNum)
@@ -452,6 +459,8 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 }
 
 func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM, receiptProcessors ...ReceiptProcessor) (*types.Receipt, error) {
+	traceMsg := "applyTransaction"
+	defer debug.Handler.StartRegionAuto(traceMsg)()
 	// Create a new context to be used in the EVM environment.
 	txContext := NewEVMTxContext(msg)
 	evm.Reset(txContext, statedb)
@@ -481,7 +490,6 @@ func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainCon
 	}
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = result.UsedGas
-
 	// If the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil {
 		receipt.ContractAddress = crypto.CreateAddress(evm.TxContext.Origin, tx.Nonce())

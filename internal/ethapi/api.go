@@ -44,6 +44,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/eth/tracers/logger"
+	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/params"
@@ -631,6 +632,37 @@ func (api *PublicBlockChainAPI) ChainId() (*hexutil.Big, error) {
 		return (*hexutil.Big)(config.ChainID), nil
 	}
 	return nil, fmt.Errorf("chain not synced beyond EIP-155 replay-protection fork block")
+}
+
+// Larry add
+// start trace from number to number + length
+func (api *PublicBlockChainAPI) EnableTraceCaptureWithBlockRange(number hexutil.Uint64, length hexutil.Uint64) {
+	if lengU64 := uint64(length); lengU64 > 1000 {
+		log.Warn("PublicBlockChainAPI.EnableTraceCaptureWithBlockRange length not acceptable", "length", lengU64)
+	}
+	debug.Handler.RpcEnableTraceCaptureWithBlockRange(uint64(number), uint64(length))
+}
+
+func (api *PublicBlockChainAPI) EnableTraceCaptureBigBlock(number hexutil.Uint64, threshold hexutil.Uint64, length hexutil.Uint64) {
+	if threshold < 100 {
+		log.Warn("PublicBlockChainAPI.EnableTraceCaptureBigBlock threshold not acceptable", "threshold", threshold)
+	}
+	if lengU64 := uint64(length); lengU64 > 1000 {
+		log.Warn("PublicBlockChainAPI.EnableTraceCaptureBigBlock length not acceptable", "length", lengU64)
+	}
+	debug.Handler.RpcEnableTraceCaptureBigBlock(uint64(number), uint64(threshold), uint64(length))
+}
+
+func (api *PublicBlockChainAPI) EnableTraceCapture() {
+	log.Info("PublicBlockChainAPI.EnableTraceCapture Enter")
+	debug.Handler.RpcEnableTraceCapture()
+	log.Info("PublicBlockChainAPI.EnableTraceCapture")
+}
+
+func (api *PublicBlockChainAPI) DisableTraceCapture() {
+	log.Info("PublicBlockChainAPI.DisableTraceCapture Enter")
+	debug.Handler.RpcDisableTraceCapture()
+	log.Info("PublicBlockChainAPI.DisableTraceCapture")
 }
 
 // BlockNumber returns the block number of the chain head.

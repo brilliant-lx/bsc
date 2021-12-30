@@ -19,6 +19,7 @@ package snapshot
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -324,8 +325,12 @@ func generateTrieRoot(db ethdb.KeyValueWriter, it Iterator, account common.Hash,
 						results <- err
 						return
 					}
+
 					if !bytes.Equal(account.Root, subroot.Bytes()) {
-						results <- fmt.Errorf("invalid subroot(path %x), want %x, have %x", hash, account.Root, subroot)
+						results <- fmt.Errorf("invalid subroot(path %x), want %x, have %x,"+
+							" nonce:%d, balance:%s, codehash:%s",
+							hash, account.Root, subroot,
+							account.Nonce, account.Balance.String(), hex.EncodeToString(account.CodeHash))
 						return
 					}
 					results <- nil

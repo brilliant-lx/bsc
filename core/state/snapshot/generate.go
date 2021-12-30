@@ -32,6 +32,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -145,6 +146,7 @@ func (gs *generatorStats) Log(msg string, root common.Hash, marker []byte) {
 // database and head block asynchronously. The snapshot is returned immediately
 // and generation is continued in the background until done.
 func generateSnapshot(diskdb ethdb.KeyValueStore, triedb *trie.Database, cache int, root common.Hash) *diskLayer {
+	defer debug.Handler.StartRegionAuto("generateSnapshot")()
 	// Create a new disk layer with an initialized state marker at zero
 	var (
 		stats     = &generatorStats{start: time.Now()}
@@ -537,6 +539,7 @@ func (dl *diskLayer) generateRange(root common.Hash, prefix []byte, kind string,
 // gathering and logging, since the method surfs the blocks as they arrive, often
 // being restarted.
 func (dl *diskLayer) generate(stats *generatorStats) {
+	defer debug.Handler.StartRegionAuto("diskLayer.generate")()
 	var (
 		accMarker    []byte
 		accountRange = accountCheckRange

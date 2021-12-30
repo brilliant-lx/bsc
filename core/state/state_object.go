@@ -27,6 +27,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/internal/debug"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -224,6 +225,7 @@ func (s *StateObject) setOriginStorage(key common.Hash, value common.Hash) {
 
 // GetCommittedState retrieves a value from the committed account storage trie.
 func (s *StateObject) GetCommittedState(db Database, key common.Hash) common.Hash {
+	defer debug.Handler.StartRegionAuto("GetCommittedState")()
 	// If the fake storage is set, only lookup the state here(in the debugging mode)
 	if s.fakeStorage != nil {
 		return s.fakeStorage[key]
@@ -252,10 +254,12 @@ func (s *StateObject) GetCommittedState(db Database, key common.Hash) common.Has
 			return common.Hash{}
 		}
 		start := time.Now()
+		region1 := debug.Handler.StartTrace("Snapshot Storage")
 		enc, err = s.db.snap.Storage(s.addrHash, crypto.Keccak256Hash(key.Bytes()))
 		if metrics.EnabledExpensive {
 			s.db.SnapshotStorageReads += time.Since(start)
 		}
+		debug.Handler.EndTrace(region1)
 	}
 
 	// If snapshot unavailable or reading from it failed, load from the database
@@ -264,10 +268,12 @@ func (s *StateObject) GetCommittedState(db Database, key common.Hash) common.Has
 		//		if metrics.EnabledExpensive {
 		//			meter = &s.db.StorageReads
 		//		}
+		region2 := debug.Handler.StartTrace("Trie Storage")
 		enc, err = s.getTrie(db).TryGet(key.Bytes())
 		if metrics.EnabledExpensive {
 			s.db.StorageReads += time.Since(start)
 		}
+		debug.Handler.EndTrace(region2)
 		if err != nil {
 			s.setError(err)
 			return common.Hash{}
