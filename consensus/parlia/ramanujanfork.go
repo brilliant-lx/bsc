@@ -1,11 +1,13 @@
 package parlia
 
 import (
+	"math/big"
 	"math/rand"
 	"time"
 
 	"github.com/ethereum/go-ethereum/consensus"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/log"
 )
 
 const (
@@ -36,7 +38,13 @@ func (p *Parlia) blockTimeForRamanujanFork(snap *Snapshot, header, parent *types
 
 func (p *Parlia) blockTimeVerifyForRamanujanFork(snap *Snapshot, header, parent *types.Header) error {
 	if p.chainConfig.IsRamanujan(header.Number) {
-		if header.Time < parent.Time+p.config.Period+p.backOffTime(snap, header, header.Coinbase) {
+		backOffTime := p.backOffTime(snap, header, header.Coinbase)
+		diffNoTurn := big.NewInt(1)
+		if header.Difficulty.Cmp(diffNoTurn) == 0 && backOffTime == 0 {
+			log.Info("verify, noTurn but backOffTime == 0", "addr", header.Coinbase,
+				"number", header.Number, "GasLimit", header.GasLimit, "GasUsed", header.GasUsed)
+		}
+		if header.Time < parent.Time+p.config.Period+backOffTime {
 			return consensus.ErrFutureBlock
 		}
 	}

@@ -379,6 +379,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 
 	// commit aborts in-flight transaction execution with given signal and resubmits a new one.
 	commit := func(reason int32) {
+		log.Info("newWorkLoop commit", "reason", reason)
 		if interruptCh != nil {
 			// each commit work will have its own interruptCh to stop work with a reason
 			interruptCh <- reason
@@ -435,6 +436,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 			if w.isRunning() && ((w.chainConfig.Ethash != nil) || (w.chainConfig.Clique != nil &&
 				w.chainConfig.Clique.Period > 0) || (w.chainConfig.Parlia != nil && w.chainConfig.Parlia.Period > 0)) {
 				// Short circuit if no new transaction arrives.
+
 				commit(commitInterruptResubmit)
 			}
 

@@ -1306,7 +1306,7 @@ func (p *Parlia) backOffTime(snap *Snapshot, header *types.Header, val common.Ad
 				log.Error("unreachable code, validator signed recently",
 					"block", header.Number, "address", val,
 					"seen", seen, "len(snap.Recents)", len(snap.Recents))
-				return 0
+				return 0 // uint64(len(validators))
 			}
 
 			inTurnAddr := validators[(snap.Number+1)%uint64(len(validators))]
