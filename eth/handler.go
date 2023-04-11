@@ -133,11 +133,13 @@ type handler struct {
 	checkpointNumber uint64      // Block number for the sync progress validator to cross reference
 	checkpointHash   common.Hash // Block hash for the sync progress validator to cross reference
 
-	database ethdb.Database
-	txpool   txPool
-	votepool votePool
-	chain    *core.BlockChain
-	maxPeers int
+	database      ethdb.Database
+	txpool        txPool
+	votepool      votePool
+	chain         *core.BlockChain
+	maxPeers      int
+	maxPeersPerIp int
+	peersPerIp    map[string]int
 
 	downloader   *downloader.Downloader
 	blockFetcher *fetcher.BlockFetcher
@@ -184,6 +186,7 @@ func newHandler(config *handlerConfig) (*handler, error) {
 		chain:                  config.Chain,
 		peers:                  config.PeerSet,
 		merger:                 config.Merger,
+		peersPerIp:             make(map[string]int),
 		whitelist:              config.Whitelist,
 		directBroadcast:        config.DirectBroadcast,
 		diffSync:               config.DiffSync,
@@ -390,7 +393,18 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 			return p2p.DiscTooManyPeers
 		}
 	}
-	peer.Log().Debug("Ethereum peer connected", "name", peer.Name())
+
+	remoteIp := peer.Peer.Info().Network.RemoteAddress
+	if num, ok := h.peersPerIp[remoteIp]; ok && num > h.maxPeersPerIp {
+		peer.Log().Info("The IP has too many peers", "ip", remoteIp,
+			"maxPeersPerIp", h.maxPeersPerIp,
+			"name", peer.Peer.Info().Name,
+			"Enode", peer.Peer.Info().Enode)
+		return p2p.DiscTooManyPeers
+	}
+	h.peersPerIp[remoteIp] = h.peersPerIp[remoteIp] + 1
+
+	peer.Log().Debug("Ethereum peer connected", "name", peer.Name(), "ip", remoteIp)
 
 	// Register the peer locally
 	if err := h.peers.registerPeer(peer, snap, diff, trust, bsc); err != nil {
@@ -624,11 +638,21 @@ func (h *handler) unregisterPeer(id string) {
 	if err := h.peers.unregisterPeer(id); err != nil {
 		logger.Error("Ethereum peer removal failed", "err", err)
 	}
+
+	remoteIp := peer.Peer.Info().Network.RemoteAddress
+	h.peersPerIp[remoteIp] = h.peersPerIp[remoteIp] - 1
+	logger.Info("unregisterPeer", "ip", remoteIp,
+		"maxPeersPerIp", h.maxPeersPerIp,
+		"name", peer.Peer.Info().Name,
+		"Enode", peer.Peer.Info().Enode)
+	if h.peersPerIp[remoteIp] == 0 {
+		delete(h.peersPerIp, remoteIp)
+	}
 }
 
 func (h *handler) Start(maxPeers int) {
 	h.maxPeers = maxPeers
-
+	h.maxPeersPerIp = 1
 	// broadcast transactions
 	h.wg.Add(1)
 	h.txsCh = make(chan core.NewTxsEvent, txChanSize)
