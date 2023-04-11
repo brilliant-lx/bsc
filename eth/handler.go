@@ -371,7 +371,7 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 	index := strings.Index(remoteAddr, ":")
 	remoteIp := remoteAddr[:index]
 	if num, ok := h.peersPerIp[remoteIp]; ok && num > h.maxPeersPerIp {
-		peer.Log().Info("The IP has too many peers", "ip", remoteIp,
+		peer.Log().Debug("The IP has too many peers", "ip", remoteIp,
 			"maxPeersPerIp", h.maxPeersPerIp,
 			"name", peer.Peer.Info().Name,
 			"Enode", peer.Peer.Info().Enode)
@@ -379,7 +379,7 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 	}
 	h.peersPerIp[remoteIp] = h.peersPerIp[remoteIp] + 1
 
-	peer.Log().Info("Ethereum peer connected", "name", peer.Name(),
+	peer.Log().Debug("Ethereum peer connected", "name", peer.Name(),
 		"remoteAddr", remoteAddr, "remoteIp", remoteIp,
 		"number", h.peersPerIp[remoteIp])
 
@@ -600,7 +600,7 @@ func (h *handler) unregisterPeer(id string) {
 
 	remoteIp := peer.Peer.Info().Network.RemoteAddress
 	h.peersPerIp[remoteIp] = h.peersPerIp[remoteIp] - 1
-	logger.Info("unregisterPeer", "ip", remoteIp,
+	logger.Debug("unregisterPeer", "ip", remoteIp,
 		"maxPeersPerIp", h.maxPeersPerIp,
 		"name", peer.Peer.Info().Name,
 		"Enode", peer.Peer.Info().Enode)
