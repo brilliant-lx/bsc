@@ -20,6 +20,7 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -366,7 +367,9 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 		}
 	}
 
-	remoteIp := peer.Peer.Info().Network.RemoteAddress
+	remoteAddr := peer.Peer.Info().Network.RemoteAddress
+	index := strings.Index(remoteAddr, ":")
+	remoteIp := remoteAddr[:index]
 	if num, ok := h.peersPerIp[remoteIp]; ok && num > h.maxPeersPerIp {
 		peer.Log().Info("The IP has too many peers", "ip", remoteIp,
 			"maxPeersPerIp", h.maxPeersPerIp,
@@ -376,7 +379,9 @@ func (h *handler) runEthPeer(peer *eth.Peer, handler eth.Handler) error {
 	}
 	h.peersPerIp[remoteIp] = h.peersPerIp[remoteIp] + 1
 
-	peer.Log().Debug("Ethereum peer connected", "name", peer.Name(), "ip", remoteIp)
+	peer.Log().Info("Ethereum peer connected", "name", peer.Name(),
+		"remoteAddr", remoteAddr, "remoteIp", remoteIp,
+		"number", h.peersPerIp[remoteIp])
 
 	// Register the peer locally
 	if err := h.peers.registerPeer(peer, snap, diff, trust); err != nil {
