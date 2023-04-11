@@ -79,6 +79,8 @@ type Config struct {
 	// connected. It must be greater than zero.
 	MaxPeers int
 
+	MaxPeersPerIp int
+
 	// MaxPendingPeers is the maximum number of peers that can be pending in the
 	// handshake phase, counted separately for inbound and outbound connections.
 	// Zero defaults to preset values.
