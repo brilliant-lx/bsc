@@ -199,6 +199,8 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.MinerExtraDataFlag,
 			utils.MinerRecommitIntervalFlag,
 			utils.MinerDelayLeftoverFlag,
+			utils.MinerMEVRelaysFlag,
+			utils.MinerMEVProposedBlockUriFlag,
 			utils.MinerNoVerfiyFlag,
 			utils.VotingEnabledFlag,
 		},
