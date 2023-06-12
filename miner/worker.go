@@ -1134,7 +1134,7 @@ func (w *worker) generateWork(params *generateParams) (*types.Block, error) {
 	reward := work.state.GetBalance(consensus.SystemAddress)
 	w.bestProposedBlockLock.RLock()
 	if w.bestProposedBlock != nil && w.bestProposedBlockReward.Cmp(reward) > 0 {
-		log.Debug("Prefer proposedBlock", "number", bestWork.header.Number, "balance", reward, "proposedReward", w.bestProposedBlockReward, "type", "generateWork")
+		log.Info("Prefer proposedBlock", "number", bestWork.header.Number, "balance", reward, "proposedReward", w.bestProposedBlockReward, "type", "generateWork")
 		bestWork = w.bestProposedBlock.copy()
 	}
 	w.bestProposedBlockLock.RUnlock()
@@ -1432,7 +1432,7 @@ LOOP:
 	// check the top proposedBlock
 	w.bestProposedBlockLock.RLock()
 	if w.bestProposedBlock != nil && w.bestProposedBlockReward.Cmp(bestReward) > 0 {
-		log.Debug("Prefer proposedBlock", "number", bestWork.header.Number, "balance", bestReward, "proposedReward", w.bestProposedBlockReward, "type", "commitWork")
+		log.Info("Prefer proposedBlock", "number", bestWork.header.Number, "balance", bestReward, "proposedReward", w.bestProposedBlockReward, "type", "commitWork")
 		bestWork = w.bestProposedBlock.copy()
 		bestReward.Set(w.bestProposedBlockReward)
 	}
