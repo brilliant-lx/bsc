@@ -199,6 +199,8 @@ var AppHelpFlagGroups = []flags.FlagGroup{
 			utils.MinerRecommitIntervalFlag,
 			utils.MinerDelayLeftoverFlag,
 			utils.MinerNoVerfiyFlag,
+			utils.SentryMinerUriFlag,
+			utils.SentryRelaysUriFlag,
 			utils.VotingEnabledFlag,
 			utils.DisableVoteAttestationFlag,
 		},
