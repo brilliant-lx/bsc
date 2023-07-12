@@ -402,8 +402,10 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 
 	txNum := len(block.Transactions())
 
-	debug.Handler.EnableTraceBigBlock(block.Header().Number.Uint64(), txNum, "sequential")
-	debug.Handler.EnableTraceCapture(block.Header().Number.Uint64(), "sequential")
+	if !debug.Handler.EnableTraceCapture(block.Header().Number.Uint64(), "sequential") {
+		debug.Handler.EnableTraceBigBlock(block.Header().Number.Uint64(), txNum, "sequential")
+	}
+
 	traceMsg := "Process " + block.Header().Number.String()
 	defer debug.Handler.StartRegionAuto(traceMsg)()
 	// Iterate over and process the individual transactions

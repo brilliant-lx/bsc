@@ -645,10 +645,10 @@ func (api *PublicBlockChainAPI) EnableTraceCaptureWithBlockRange(number hexutil.
 
 func (api *PublicBlockChainAPI) EnableTraceCaptureBigBlock(number hexutil.Uint64, threshold hexutil.Uint64, length hexutil.Uint64) {
 	if threshold < 100 {
-		log.Warn("PublicBlockChainAPI.EnableTraceCaptureBigBlock threshold not acceptable", "threshold", threshold)
+		log.Warn("PublicBlockChainAPI.EnableTraceCaptureBigBlock threshold is small", "threshold", threshold)
 	}
 	if lengU64 := uint64(length); lengU64 > 1000 {
-		log.Warn("PublicBlockChainAPI.EnableTraceCaptureBigBlock length not acceptable", "length", lengU64)
+		log.Warn("PublicBlockChainAPI.EnableTraceCaptureBigBlock length too big", "length", lengU64)
 	}
 	debug.Handler.RpcEnableTraceCaptureBigBlock(uint64(number), uint64(threshold), uint64(length))
 }

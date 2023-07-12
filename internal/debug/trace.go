@@ -132,18 +132,19 @@ func (h *HandlerT) RpcEnableTraceCaptureBigBlock(number, threshold, length uint6
 }
 
 // enable a trace capture cycle, with length captureBlockNum
-func (h *HandlerT) EnableTraceCapture(blockNum uint64, subfix string) {
+func (h *HandlerT) EnableTraceCapture(blockNum uint64, subfix string) bool {
 	h.fileSubfix = subfix
 	if blockNum >= h.startBlockNum && blockNum < h.endBlockNum {
 		h.curBlockNum = blockNum
 		h.RpcEnableTraceCapture()
-		return
+		return true
 	}
 
 	h.RpcDisableTraceCapture()
+	return false
 }
 
-func (h *HandlerT) EnableTraceBigBlock(blockNum uint64, txNum int, subfix string) {
+func (h *HandlerT) EnableTraceBigBlock(blockNum uint64, txNum int, subfix string) bool {
 	h.fileSubfix = subfix
 	h.RpcDisableTraceCapture()
 	if blockNum >= h.startBlockNum && h.traceBigBlock && txNum >= int(h.bigBlockThreshold) {
@@ -153,7 +154,9 @@ func (h *HandlerT) EnableTraceBigBlock(blockNum uint64, txNum int, subfix string
 			h.traceBigBlock = false
 		}
 		h.RpcEnableTraceCapture()
+		return true
 	}
+	return false
 }
 func (h *HandlerT) Ctx() context.Context {
 	return h.ctx
@@ -185,7 +188,6 @@ func (h *HandlerT) StopGoTrace() error {
 	return nil
 }
 
-//
 func (h *HandlerT) LogWhenTracing(msg string) {
 	if h.task == nil {
 		return
