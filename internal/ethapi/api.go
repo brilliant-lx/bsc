@@ -1772,7 +1772,7 @@ func (s *PublicBlockChainAPI) ProposedBlock(ctx context.Context, args ProposedBl
 	case <-ctx.Done():
 		return ctx.Err()
 	default:
-		return s.b.ProposedBlock(ctx, &args)
+		return s.b.ProposedBlock(ctx, &args, "eth")
 	}
 }
 
@@ -2372,7 +2372,8 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs Transact
 type RegisterValidatorArgs struct {
 	Data      hexutil.Bytes `json:"data"` // bytes of string with callback ProposedBlockUri
 	Signature hexutil.Bytes `json:"signature"`
-	IsSentry  bool          `json:"is_sentry"`
+	IsSentry  bool          `json:"isSentry"`
+	Namespace string        `json:"namespace"`
 }
 
 // RegisterValidator registers a validator for the next epoch to the pool of proposing destinations.
@@ -2473,6 +2474,26 @@ func (api *PrivateDebugAPI) ChaindbCompact() error {
 // SetHead rewinds the head of the blockchain to a previous block.
 func (api *PrivateDebugAPI) SetHead(number hexutil.Uint64) {
 	api.b.SetHead(uint64(number))
+}
+
+// PublicMEVAPI provides an API to MEV endpoints.
+type PublicMEVAPI struct {
+	b Backend
+}
+
+// NewPublicMEVAPI creates a new MEV protocol API.
+func NewPublicMEVAPI(b Backend) *PublicMEVAPI {
+	return &PublicMEVAPI{b}
+}
+
+// ProposedBlock will submit the block to the miner worker
+func (s *PublicMEVAPI) ProposedBlock(ctx context.Context, args ProposedBlockArgs) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return s.b.ProposedBlock(ctx, &args, "mev")
+	}
 }
 
 // PublicNetAPI offers network related RPC methods
