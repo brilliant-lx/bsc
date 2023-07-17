@@ -552,7 +552,12 @@ var (
 	}
 	MinerMEVProposedBlockUriFlag = cli.StringFlag{
 		Name:  "miner.mevproposedblockuri",
-		Usage: "The uri MEV relays should send the eth_proposedBlock to.",
+		Usage: "The uri MEV relays should send the proposedBlock to.",
+	}
+	MinerMEVProposedBlockNamespaceFlag = cli.StringFlag{
+		Name:  "miner.mevproposedblocknamespace",
+		Usage: "The namespace implements the proposedBlock function (default = eth). ",
+		Value: "eth",
 	}
 	// Account settings
 	UnlockedAccountFlag = cli.StringFlag{
@@ -647,6 +652,21 @@ var (
 	HTTPPathPrefixFlag = cli.StringFlag{
 		Name:  "http.rpcprefix",
 		Usage: "HTTP path path prefix on which JSON-RPC is served. Use '/' to serve on all paths.",
+		Value: "",
+	}
+	HTTPSecuredIPPortFlag = cli.IntFlag{
+		Name:  "http.securedipport",
+		Usage: "HTTP-RPC server secured by IP listening port",
+		Value: node.DefaultHTTPSecuredIPPort,
+	}
+	HTTPSecuredIPAllowedIPsFlag = cli.StringFlag{
+		Name:  "http.securedipallowedips",
+		Usage: "Comma separated list of IPs from which to accept requests (server enforced). Accepts '*' wildcard.",
+		Value: strings.Join(node.DefaultConfig.HTTPSecuredIPAllowedIPs, ","),
+	}
+	HTTPSecuredIPApiFlag = cli.StringFlag{
+		Name:  "http.securedipapi",
+		Usage: "Comma separated list of API's offered over the HTTP-RPC secured by IP interface",
 		Value: "",
 	}
 	GraphQLEnabledFlag = cli.BoolFlag{
@@ -1096,6 +1116,42 @@ func setHTTP(ctx *cli.Context, cfg *node.Config) {
 	}
 }
 
+// setHTTPSecuredIP creates the HTTP RPC listener interface secured by IP string from the set
+// command line flags, returning empty if the HTTP endpoint is disabled.
+func setHTTPSecuredIP(ctx *cli.Context, cfg *node.Config) {
+	if ctx.GlobalBool(HTTPEnabledFlag.Name) {
+		if cfg.HTTPHost == "" {
+			cfg.HTTPHost = "127.0.0.1"
+		}
+		if ctx.GlobalIsSet(HTTPListenAddrFlag.Name) {
+			cfg.HTTPHost = ctx.GlobalString(HTTPListenAddrFlag.Name)
+		}
+	}
+
+	if ctx.GlobalIsSet(HTTPSecuredIPPortFlag.Name) {
+		cfg.HTTPSecuredIPPort = ctx.GlobalInt(HTTPSecuredIPPortFlag.Name)
+	}
+
+	if ctx.GlobalIsSet(HTTPCORSDomainFlag.Name) {
+		cfg.HTTPCors = SplitAndTrim(ctx.GlobalString(HTTPCORSDomainFlag.Name))
+	}
+
+	if ctx.GlobalIsSet(HTTPSecuredIPApiFlag.Name) {
+		cfg.HTTPSecuredIPModules = SplitAndTrim(ctx.GlobalString(HTTPSecuredIPApiFlag.Name))
+	}
+
+	if ctx.GlobalIsSet(HTTPSecuredIPAllowedIPsFlag.Name) {
+		cfg.HTTPSecuredIPAllowedIPs = SplitAndTrim(ctx.GlobalString(HTTPSecuredIPAllowedIPsFlag.Name))
+	}
+
+	if ctx.GlobalIsSet(HTTPPathPrefixFlag.Name) {
+		cfg.HTTPPathPrefix = ctx.GlobalString(HTTPPathPrefixFlag.Name)
+	}
+	if ctx.GlobalIsSet(AllowUnprotectedTxs.Name) {
+		cfg.AllowUnprotectedTxs = ctx.GlobalBool(AllowUnprotectedTxs.Name)
+	}
+}
+
 // setGraphQL creates the GraphQL listener interface string from the set
 // command line flags, returning empty if the GraphQL endpoint is disabled.
 func setGraphQL(ctx *cli.Context, cfg *node.Config) {
@@ -1356,6 +1412,7 @@ func SetNodeConfig(ctx *cli.Context, cfg *node.Config) {
 	SetP2PConfig(ctx, &cfg.P2P)
 	setIPC(ctx, cfg)
 	setHTTP(ctx, cfg)
+	setHTTPSecuredIP(ctx, cfg)
 	setGraphQL(ctx, cfg)
 	setWS(ctx, cfg)
 	setNodeUserIdent(ctx, cfg)
@@ -1614,6 +1671,7 @@ func setMEV(ctx *cli.Context, ks *keystore.KeyStore, cfg *miner.Config) {
 		if ctx.GlobalIsSet(MinerMEVProposedBlockUriFlag.Name) {
 			cfg.ProposedBlockUri = ctx.GlobalString(MinerMEVProposedBlockUriFlag.Name)
 		}
+		cfg.ProposedBlockNamespace = ctx.GlobalString(MinerMEVProposedBlockNamespaceFlag.Name)
 		account, err := ks.Find(accounts.Account{Address: cfg.Etherbase})
 		if err != nil {
 			Fatalf("Could not find the validator public address %v to sign the registerValidator message, %v", cfg.Etherbase, err)

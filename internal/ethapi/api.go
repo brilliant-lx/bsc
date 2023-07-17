@@ -1336,6 +1336,7 @@ func (s *PublicBlockChainAPI) GetVerifyResult(ctx context.Context, blockNr rpc.B
 type RegisterValidatorArgs struct {
 	Data      hexutil.Bytes `json:"data"` // bytes of string with callback ProposedBlockUri
 	Signature hexutil.Bytes `json:"signature"`
+	Namespace string        `json:"namespace"`
 }
 
 func (s *PublicEthereumAPI) RegisterValidator(ctx context.Context, args RegisterValidatorArgs) error {
@@ -1366,8 +1367,8 @@ func (s *PublicBlockChainAPI) ProposedBlock(ctx context.Context, args ProposedBl
 	proposedBlockNumber := big.NewInt(args.BlockNumber.Int64())
 
 	if proposedBlockNumber.Cmp(blockOnChain) < 1 {
-		log.Info("Validating ProposedBlock failed", "blockNumber", args.BlockNumber, "onChainBlockNumber", blockOnChain, "prevBlockHash", args.PrevBlockHash, "mevRelay", args.MEVRelay)
-		return fmt.Errorf("blockNumber is incorrect. proposedBlockNumber: %v onChainBlockNumber: %v", args.BlockNumber, blockOnChain)
+		log.Info("Validating ProposedBlock failed", "blockNumber", args.BlockNumber, "onChainBlockNumber", blockOnChain, "onChainBlockHash", s.b.CurrentBlock().Hash(), "prevBlockHash", args.PrevBlockHash, "mevRelay", args.MEVRelay)
+		return fmt.Errorf("blockNumber is incorrect. proposedBlockNumber: %v onChainBlockNumber: %v onChainBlockHash %v", args.BlockNumber, blockOnChain, s.b.CurrentBlock().Hash().String())
 	}
 	for _, encodedTx := range args.Payload {
 		tx := new(types.Transaction)
@@ -2427,6 +2428,48 @@ func (api *PrivateDebugAPI) ChaindbCompact() error {
 // SetHead rewinds the head of the blockchain to a previous block.
 func (api *PrivateDebugAPI) SetHead(number hexutil.Uint64) {
 	api.b.SetHead(uint64(number))
+}
+
+// PublicMEVAPI provides an API to MEV endpoints.
+type PublicMEVAPI struct {
+	b Backend
+}
+
+// NewPublicMEVAPI creates a new MEV protocol API.
+func NewPublicMEVAPI(b Backend) *PublicMEVAPI {
+	return &PublicMEVAPI{b}
+}
+
+// ProposedBlock will submit the block to the miner worker
+func (s *PublicMEVAPI) ProposedBlock(ctx context.Context, args ProposedBlockArgs) error {
+	var txs types.Transactions
+	if len(args.Payload) == 0 {
+		return errors.New("block missing txs")
+	}
+	if args.BlockNumber == 0 {
+		return errors.New("block missing blockNumber")
+	}
+
+	nextBlock := big.NewInt(0).Add(big.NewInt(1), s.b.CurrentBlock().Number())
+	proposedBlockNumber := big.NewInt(args.BlockNumber.Int64())
+
+	if nextBlock.Cmp(proposedBlockNumber) != 0 {
+		log.Info("Validating ProposedBlock failed", "number", args.BlockNumber, "chain number", s.b.CurrentBlock().Number(), "MEVRelay", args.MEVRelay)
+		return errors.New("blockNumber is incorrect")
+	}
+	if s.b.CurrentBlock().Hash() != args.PrevBlockHash {
+		log.Info("Validating ProposedBlock failed", "number", args.BlockNumber, "prevHash", args.PrevBlockHash.Hex(), "chain current block", s.b.CurrentBlock().Hash(), "MEVRelay", args.MEVRelay)
+		return errors.New("prevBlockHash is incorrect")
+	}
+
+	for _, encodedTx := range args.Payload {
+		tx := new(types.Transaction)
+		if err := tx.UnmarshalBinary(encodedTx); err != nil {
+			return err
+		}
+		txs = append(txs, tx)
+	}
+	return s.b.ProposedBlock(ctx, args.MEVRelay, proposedBlockNumber, args.PrevBlockHash, args.BlockReward, args.GasLimit, args.GasUsed, txs)
 }
 
 // PublicNetAPI offers network related RPC methods

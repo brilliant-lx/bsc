@@ -60,7 +60,8 @@ type Config struct {
 	VoteEnable    bool           // Whether to vote when mining
 
 	MEVRelays                   map[string]*rpc.Client // RPC clients to register validator each epoch
-	ProposedBlockUri            string                 // received eth_proposedBlocks on that uri
+	ProposedBlockUri            string                 // received proposedBlocks on that uri
+	ProposedBlockNamespace      string                 // define the namespace of proposedBlock
 	RegisterValidatorSignedHash []byte                 // signed value of crypto.Keccak256([]byte(ProposedBlockUri))
 }
 
@@ -79,6 +80,7 @@ type Miner struct {
 
 	mevRelays              map[string]*rpc.Client
 	proposedBlockUri       string
+	proposedBlockNamespace string
 	signedProposedBlockUri []byte
 }
 
@@ -94,6 +96,7 @@ func New(eth Backend, config *Config, chainConfig *params.ChainConfig, mux *even
 
 		mevRelays:              config.MEVRelays,
 		proposedBlockUri:       config.ProposedBlockUri,
+		proposedBlockNamespace: config.ProposedBlockNamespace,
 		signedProposedBlockUri: config.RegisterValidatorSignedHash,
 	}
 	miner.wg.Add(1)
@@ -300,12 +303,12 @@ func (miner *Miner) ProposedBlock(MEVRelay string, blockNumber *big.Int, prevBlo
 			"txCount", len(txs),
 			"isBlockSkipped", isBlockSkipped,
 			"currentGasLimit", currentGasLimit,
-			"timestamp", time.Now().String(),
+			"timestamp", time.Now().UTC().Format(timestampFormat),
 		)
 	}()
-	if gasUsed > currentGasLimit {
-		isBlockSkipped = true
-		return fmt.Errorf("gasUsed exceeds the current block gas limit %v", currentGasLimit)
+	isBlockSkipped = gasUsed > currentGasLimit
+	if isBlockSkipped {
+		return fmt.Errorf("proposed block gasUsed %v exceeds the current block gas limit %v", gasUsed, currentGasLimit)
 	}
 	miner.worker.proposedCh <- &ProposedBlockArgs{
 		mevRelay:      MEVRelay,
@@ -324,6 +327,7 @@ func (miner *Miner) registerValidator() {
 	registerValidatorArgs := &ethapi.RegisterValidatorArgs{
 		Data:      []byte(miner.proposedBlockUri),
 		Signature: miner.signedProposedBlockUri,
+		Namespace: miner.proposedBlockNamespace,
 	}
 	for dest, destClient := range miner.mevRelays {
 		go func(dest string, destinationClient *rpc.Client, registerValidatorArgs *ethapi.RegisterValidatorArgs) {

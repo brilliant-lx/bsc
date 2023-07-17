@@ -803,7 +803,7 @@ func (w *worker) proposedLoop() {
 					works[req.prevBlockHash.String()] = newProposedBlockWork
 				}
 				w.bestProposedBlockInfo[req.blockNumber.Uint64()] = works
-				log.Info("Received proposedBlock, this is the first proposed block for this block number and previous block hash", "newProposedBlockReward", newProposedBlockWork.reward, "blockNumber", req.blockNumber, "prevBlockHash", req.prevBlockHash.String(), "newProposedBlockGasUsed", req.gasUsed, "mevRelay", req.mevRelay, "newProposedBlockTxCount", len(req.txs), "simulatedDuration", duration, "timestamp", time.Now().UTC().Format(timestampFormat))
+				log.Info("Received proposedBlock, this is the first proposed block for this block number and previous block hash", "blockNumber", req.blockNumber, "prevBlockHash", req.prevBlockHash.String(), "newProposedBlockReward", newProposedBlockWork.reward, "newProposedBlockGasUsed", req.gasUsed, "mevRelay", req.mevRelay, "newProposedBlockTxCount", len(req.txs), "simulatedDuration", duration, "timestamp", time.Now().UTC().Format(timestampFormat))
 
 			} else if previousProposedBlockWork, exist := bestWorks[req.prevBlockHash.String()]; exist && previousProposedBlockWork != nil && previousProposedBlockWork.work != nil {
 				if previousProposedBlockWork.reward != nil && newProposedBlockWork.reward.Cmp(previousProposedBlockWork.reward) > 0 {
