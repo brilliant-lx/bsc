@@ -57,6 +57,8 @@ const (
 	txReannoMaxNum = 1024
 )
 
+var txMaxPrice = big.NewInt(10 * params.GWei)
+
 var (
 	// ErrAlreadyKnown is returned if the transactions is already contained
 	// within the pool.
@@ -68,6 +70,10 @@ var (
 	// ErrUnderpriced is returned if a transaction's gas price is below the minimum
 	// configured for the transaction pool.
 	ErrUnderpriced = errors.New("transaction underpriced")
+
+	// ErrOverpriced if the transaction's gas price is above the maximum
+	// Sometime, just don't want overpriced transaction, especially in Testnet
+	ErrOverpriced = errors.New("transaction overpriced")
 
 	// ErrTxPoolOverflow is returned if the transaction pool is full and can't accpet
 	// another remote transaction.
@@ -680,6 +686,11 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if !local && tx.GasTipCapIntCmp(pool.gasPrice) < 0 {
 		return ErrUnderpriced
 	}
+	if !local && tx.GasTipCapIntCmp(txMaxPrice) > 0 {
+		log.Debug("ErrOverpriced", "GasTipCap", tx.GasTipCap(), "txMaxPrice", txMaxPrice)
+		return ErrOverpriced
+	}
+
 	// Ensure the transaction adheres to nonce ordering
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
 		return ErrNonceTooLow
