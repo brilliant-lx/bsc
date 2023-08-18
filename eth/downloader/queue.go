@@ -691,6 +691,9 @@ func (q *queue) DeliverHeaders(id string, headers []*types.Header, hashes []comm
 	target := q.headerTaskPool[request.From].Hash()
 
 	accepted := len(headers) == MaxHeaderFetch
+	if !accepted {
+		log.Debug("DeliverHeaders", "len(headers)", len(headers), "MaxHeaderFetch", MaxHeaderFetch)
+	}
 	if accepted {
 		if headers[0].Number.Uint64() != request.From {
 			logger.Trace("First header broke chain ordering", "number", headers[0].Number, "hash", hashes[0], "expected", request.From)
