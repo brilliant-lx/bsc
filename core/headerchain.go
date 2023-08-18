@@ -590,6 +590,9 @@ func (hc *HeaderChain) GetHeadersFrom(number, count uint64) []rlp.RawValue {
 	}
 	// Read remaining from db
 	if count > 0 {
+		if number == 30361250 && count == 191 {
+			log.Debug("GetHeadersFrom DB hit")
+		}
 		headersDB := rawdb.ReadHeaderRange(hc.chainDb, number, count)
 		log.Debug("GetHeadersFrom DB", "hash", hash, "number", number, "count", count, "len(headersDB)", len(headersDB))
 		headers = append(headers, headersDB...)
