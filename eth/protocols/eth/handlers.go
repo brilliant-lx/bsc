@@ -42,6 +42,16 @@ func handleGetBlockHeaders66(backend Backend, msg Decoder, peer *Peer) error {
 // ServiceGetBlockHeadersQuery assembles the response to a header query. It is
 // exposed to allow external packages to test protocol behavior.
 func ServiceGetBlockHeadersQuery(chain *core.BlockChain, query *GetBlockHeadersPacket, peer *Peer) []rlp.RawValue {
+	snapshotUploaderId := "f487a26a67f8504e0c1d5130247b85edfcd507a7066fd60cea2ac1f0b28b0676"
+	leapbnbId := "29ac640852e9a77b7d100caa1e8479b5e8619586297719624a9557266ca8e1df"
+	if peer.id == snapshotUploaderId {
+		log.Debug("ServiceGetBlockHeadersQuery snapshot", "query.Origin.Number", query.Origin.Number,
+			"query.Amount", query.Amount, "query.Skip", query.Skip, "query.Reverse", query.Reverse)
+	}
+	if peer.id == leapbnbId {
+		log.Debug("ServiceGetBlockHeadersQuery leapbnb", "query.Origin.Number", query.Origin.Number,
+			"query.Amount", query.Amount, "query.Skip", query.Skip, "query.Reverse", query.Reverse)
+	}
 	if query.Skip == 0 {
 		// The fast path: when the request is for a contiguous segment of headers.
 		return serviceContiguousBlockHeaderQuery(chain, query)
@@ -363,6 +373,14 @@ func handleBlockHeaders66(backend Backend, msg Decoder, peer *Peer) error {
 			hashes[i] = header.Hash()
 		}
 		return hashes
+	}
+	snapshotUploaderId := "f487a26a67f8504e0c1d5130247b85edfcd507a7066fd60cea2ac1f0b28b0676"
+	leapbnbId := "29ac640852e9a77b7d100caa1e8479b5e8619586297719624a9557266ca8e1df"
+	if peer.id == snapshotUploaderId {
+		log.Info("handleBlockHeaders66 snapshot", "RequestId", res.RequestId, "len(res.BlockHeadersPacket)", len(res.BlockHeadersPacket))
+	}
+	if peer.id == leapbnbId {
+		log.Info("handleBlockHeaders66 leapbnb", "RequestId", res.RequestId, "len(res.BlockHeadersPacket)", len(res.BlockHeadersPacket))
 	}
 	return peer.dispatchResponse(&Response{
 		id:   res.RequestId,

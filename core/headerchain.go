@@ -577,6 +577,7 @@ func (hc *HeaderChain) GetHeadersFrom(number, count uint64) []rlp.RawValue {
 	}
 	for count > 0 {
 		header, ok := hc.headerCache.Get(hash)
+		log.Debug("GetHeadersFrom headerCache", "hash", hash, "number", number, "count", count, "ok", ok)
 		if !ok {
 			break
 		}
@@ -589,7 +590,9 @@ func (hc *HeaderChain) GetHeadersFrom(number, count uint64) []rlp.RawValue {
 	}
 	// Read remaining from db
 	if count > 0 {
-		headers = append(headers, rawdb.ReadHeaderRange(hc.chainDb, number, count)...)
+		headersDB := rawdb.ReadHeaderRange(hc.chainDb, number, count)
+		log.Debug("GetHeadersFrom DB", "hash", hash, "number", number, "count", count, "len(headersDB)", len(headersDB))
+		headers = append(headers, headersDB...)
 	}
 	return headers
 }
