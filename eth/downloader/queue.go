@@ -422,19 +422,23 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int) *fetchRequest {
 	// Short circuit if the peer's already downloading something (sanity check to
 	// not corrupt state)
 	if _, ok := q.headerPendPool[p.id]; ok {
+		log.Debug("ReserveHeaders headerPendPool[p.id]", "p.id", p.id)
 		return nil
 	}
 	// Retrieve a batch of hashes, skipping previously failed ones
+	log.Debug("ReserveHeaders", "headerTaskQueue.Size", q.headerTaskQueue.Size())
 	send, skip := uint64(0), []uint64{}
 	for send == 0 && !q.headerTaskQueue.Empty() {
 		from, _ := q.headerTaskQueue.Pop()
 		if q.headerPeerMiss[p.id] != nil {
 			if _, ok := q.headerPeerMiss[p.id][from.(uint64)]; ok {
 				skip = append(skip, from.(uint64))
+				log.Debug("ReserveHeaders", "skip", skip)
 				continue
 			}
 		}
 		send = from.(uint64)
+		log.Debug("ReserveHeaders", "send", send)
 	}
 	// Merge all the skipped batches back
 	for _, from := range skip {
@@ -442,6 +446,7 @@ func (q *queue) ReserveHeaders(p *peerConnection, count int) *fetchRequest {
 	}
 	// Assemble and return the block download request
 	if send == 0 {
+		log.Debug("ReserveHeaders send == 0")
 		return nil
 	}
 	request := &fetchRequest{
