@@ -167,9 +167,12 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 				// Short circuit if throttling activated or there are no more
 				// queued tasks to be retrieved
 				if throttled {
+					log.Debug("concurrentFetch throttled")
 					break
 				}
-				if queued = queue.pending(); queued == 0 {
+				queuedNum := queue.pending()
+				log.Debug("concurrentFetch", "queuedNum", queuedNum)
+				if queuedNum == 0 {
 					break
 				}
 				// Reserve a chunk of fetches for a peer. A nil can mean either that
@@ -209,6 +212,7 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 			}
 			// Make sure that we have peers available for fetching. If all peers have been tried
 			// and all failed throw an error
+			log.Debug("concurrentFetch", "len(pending)", len(pending))
 			if !progressed && !throttled && len(pending) == 0 && len(idles) == d.peers.Len() && queued > 0 {
 				return errPeersUnavailable
 			}
