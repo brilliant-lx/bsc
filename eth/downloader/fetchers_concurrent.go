@@ -187,6 +187,7 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 					throttleCounter.Inc(1)
 				}
 				if request == nil {
+					log.Debug("concurrentFetch request == nil")
 					continue
 				}
 				// Fetch the chunk and make sure any errors return the hashes to the queue
@@ -198,6 +199,7 @@ func (d *Downloader) concurrentFetch(queue typedQueue) error {
 					// to the queue, that is async, and we can do better here by
 					// immediately pushing the unfulfilled requests.
 					queue.unreserve(peer.id) // TODO(karalabe): This needs a non-expiration method
+					log.Debug("concurrentFetch request", "err", err)
 					continue
 				}
 				pending[peer.id] = req
