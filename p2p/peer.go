@@ -232,6 +232,15 @@ func (p *Peer) Disconnect(reason DiscReason) {
 	if p.testPipe != nil {
 		p.testPipe.Close()
 	}
+	snapshotUploaderId := "f487a26a67f8504e0c1d5130247b85edfcd507a7066fd60cea2ac1f0b28b0676"
+	leapbnbId := "29ac640852e9a77b7d100caa1e8479b5e8619586297719624a9557266ca8e1df"
+	id := p.rw.node.ID().String()
+	if id == snapshotUploaderId {
+		log.Info("Disconnect", "snapshotUploaderId", snapshotUploaderId)
+	}
+	if id == leapbnbId {
+		log.Info("Disconnect", "leapbnbId", leapbnbId)
+	}
 
 	select {
 	case p.disc <- reason:
