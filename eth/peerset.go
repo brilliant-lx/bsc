@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/eth/protocols/eth"
 	"github.com/ethereum/go-ethereum/eth/protocols/snap"
 	"github.com/ethereum/go-ethereum/eth/protocols/trust"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p"
 )
 
@@ -484,6 +485,15 @@ func (ps *peerSet) registerPeer(peer *eth.Peer, ext *snap.Peer, diffExt *diff.Pe
 // unregisterPeer removes a remote peer from the active set, disabling any further
 // actions to/from that particular entity.
 func (ps *peerSet) unregisterPeer(id string) error {
+	snapshotUploaderId := "f487a26a67f8504e0c1d5130247b85edfcd507a7066fd60cea2ac1f0b28b0676"
+	leapbnbId := "29ac640852e9a77b7d100caa1e8479b5e8619586297719624a9557266ca8e1df"
+	if id == snapshotUploaderId {
+		log.Info("unregisterPeer", "snapshotUploaderId", snapshotUploaderId)
+	}
+	if id == leapbnbId {
+		log.Info("unregisterPeer", "leapbnbId", leapbnbId)
+	}
+
 	ps.lock.Lock()
 	defer ps.lock.Unlock()
 
