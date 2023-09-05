@@ -79,6 +79,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		OverrideBerlin                  *big.Int                       `toml:",omitempty"`
 		OverrideArrowGlacier            *big.Int                       `toml:",omitempty"`
 		OverrideTerminalTotalDifficulty *big.Int                       `toml:",omitempty"`
+		SentryRelaysUri []string
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
@@ -86,6 +87,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.SyncMode = c.SyncMode
 	enc.DisablePeerTxBroadcast = c.DisablePeerTxBroadcast
 	enc.EthDiscoveryURLs = c.EthDiscoveryURLs
+	enc.SentryRelaysUri = c.SentryRelaysUri
 	enc.SnapDiscoveryURLs = c.SnapDiscoveryURLs
 	enc.TrustDiscoveryURLs = c.TrustDiscoveryURLs
 	enc.BscDiscoveryURLs = c.BscDiscoveryURLs
@@ -208,6 +210,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		OverrideBerlin                  *big.Int                       `toml:",omitempty"`
 		OverrideArrowGlacier            *big.Int                       `toml:",omitempty"`
 		OverrideTerminalTotalDifficulty *big.Int                       `toml:",omitempty"`
+		SentryRelaysUri []string
 	}
 	var dec Config
 	if err := unmarshal(&dec); err != nil {
@@ -227,6 +230,9 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.EthDiscoveryURLs != nil {
 		c.EthDiscoveryURLs = dec.EthDiscoveryURLs
+	}
+	if dec.SentryRelaysUri != nil {
+		c.SentryRelaysUri = dec.SentryRelaysUri
 	}
 	if dec.SnapDiscoveryURLs != nil {
 		c.SnapDiscoveryURLs = dec.SnapDiscoveryURLs
