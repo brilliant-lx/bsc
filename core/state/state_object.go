@@ -308,6 +308,7 @@ func (s *stateObject) finalise(prefetch bool) {
 // It will return nil if the trie has not been loaded and no changes have been
 // made. An error will be returned if the trie can't be loaded/updated correctly.
 func (s *stateObject) updateTrie() (Trie, error) {
+	defer debug.Handler.StartRegionAuto("updateRoot")()
 	// Make sure all dirty slots are finalized into the pending storage area
 	s.finalise(false) // Don't prefetch anymore, pull directly if need be
 	if len(s.pendingStorage) == 0 {
@@ -424,6 +425,7 @@ func (s *stateObject) updateTrie() (Trie, error) {
 // UpdateRoot sets the trie root to the current root hash of. An error
 // will be returned if trie root hash is not computed correctly.
 func (s *stateObject) updateRoot() {
+	defer debug.Handler.StartRegionAuto("updateRoot")()
 	// If node runs in no trie mode, set root to empty.
 	defer func() {
 		if s.db.db.NoTries() {
