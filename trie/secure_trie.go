@@ -245,6 +245,7 @@ func (t *StateTrie) Commit(collectLeaf bool) (common.Hash, *trienode.NodeSet, er
 // Hash returns the root hash of StateTrie. It does not write to the
 // database and can be used even if the trie doesn't have one.
 func (t *StateTrie) Hash() common.Hash {
+	defer debug.Handler.StartRegionAuto("StateTrie.Hash")()
 	return t.trie.Hash()
 }
 
