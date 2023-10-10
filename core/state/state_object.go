@@ -148,6 +148,7 @@ func (s *stateObject) touch() {
 // if it's not loaded previously. An error will be returned if trie can't
 // be loaded.
 func (s *stateObject) getTrie() (Trie, error) {
+	defer debug.Handler.StartRegionAuto("getTrie")()
 	if s.trie == nil {
 		// Try fetching from prefetcher first
 		if s.data.Root != types.EmptyRootHash && s.db.prefetcher != nil {
@@ -289,6 +290,7 @@ func (s *stateObject) setState(key, value common.Hash) {
 // finalise moves all dirty storage slots into the pending area to be hashed or
 // committed later. It is invoked at the end of every transaction.
 func (s *stateObject) finalise(prefetch bool) {
+	defer debug.Handler.StartRegionAuto("finalise")()
 	slotsToPrefetch := make([][]byte, 0, len(s.dirtyStorage))
 	for key, value := range s.dirtyStorage {
 		s.pendingStorage[key] = value
@@ -308,7 +310,7 @@ func (s *stateObject) finalise(prefetch bool) {
 // It will return nil if the trie has not been loaded and no changes have been
 // made. An error will be returned if the trie can't be loaded/updated correctly.
 func (s *stateObject) updateTrie() (Trie, error) {
-	defer debug.Handler.StartRegionAuto("updateRoot")()
+	defer debug.Handler.StartRegionAuto("updateTrie")()
 	// Make sure all dirty slots are finalized into the pending storage area
 	s.finalise(false) // Don't prefetch anymore, pull directly if need be
 	if len(s.pendingStorage) == 0 {
@@ -351,6 +353,7 @@ func (s *stateObject) updateTrie() (Trie, error) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
+		defer debug.Handler.StartRegionAuto("updateTrie func 1 trie")()
 		defer wg.Done()
 		for key, value := range dirtyStorage {
 			if len(value) == 0 {
@@ -371,6 +374,7 @@ func (s *stateObject) updateTrie() (Trie, error) {
 	// If state snapshotting is active, cache the data til commit
 	wg.Add(1)
 	go func() {
+		defer debug.Handler.StartRegionAuto("updateTrie func 2 snapshot")()
 		defer wg.Done()
 		s.db.StorageMux.Lock()
 		// The snapshot storage map for the object
