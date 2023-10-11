@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/internal/debug"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie/trienode"
@@ -355,6 +356,9 @@ func (s *stateObject) updateTrie() (Trie, error) {
 	go func() {
 		defer debug.Handler.StartRegionAuto("updateTrie func 1 trie")()
 		defer wg.Done()
+		if len(dirtyStorage) > 100 {
+			log.Info("updateTrie", "dirtyStorage size", len(dirtyStorage), "addr", s.address)
+		}
 		for key, value := range dirtyStorage {
 			if len(value) == 0 {
 				if err := tr.DeleteStorage(s.address, key[:]); err != nil {
