@@ -117,6 +117,7 @@ func newTriePrefetcher(db Database, root, rootParent common.Hash, namespace stri
 // include: subfetcher's creation & abort, child subfetcher's creation & abort.
 // since the mainLoop will handle all the requests, each message handle should be lightweight
 func (p *triePrefetcher) mainLoop() {
+	defer debug.Handler.StartRegionAuto("prefetch mainLoop")()
 	for {
 		select {
 		case pMsg := <-p.prefetchChan:
@@ -376,6 +377,7 @@ type subfetcher struct {
 // newSubfetcher creates a goroutine to prefetch state items belonging to a
 // particular root hash.
 func newSubfetcher(db Database, state common.Hash, owner common.Hash, root common.Hash, addr common.Address) *subfetcher {
+	defer debug.Handler.StartRegionAuto("newSubfetcher")()
 	sf := &subfetcher{
 		db:    db,
 		state: state,
@@ -407,6 +409,8 @@ func (sf *subfetcher) schedule(keys [][]byte) {
 }
 
 func (sf *subfetcher) scheduleParallel(keys [][]byte) {
+	defer debug.Handler.StartRegionAuto("scheduleParallel")()
+
 	var keyIndex uint32 = 0
 	childrenNum := len(sf.paraChildren)
 	if childrenNum > 0 {
@@ -477,6 +481,12 @@ func (sf *subfetcher) abort() {
 // loop waits for new tasks to be scheduled and keeps loading them until it runs
 // out of tasks or its underlying trie is retrieved for committing.
 func (sf *subfetcher) loop() {
+	traceMsg := "subfetcher"
+	if sf.owner != (common.Hash{}) {
+		traceMsg += "_" + sf.addr.String()
+	}
+	defer debug.Handler.StartRegionAuto(traceMsg)()
+
 	// No matter how the loop stops, signal anyone waiting that it's terminated
 	defer close(sf.term)
 
@@ -489,7 +499,7 @@ func (sf *subfetcher) loop() {
 		trie, err = sf.db.OpenStorageTrie(sf.state, sf.addr, sf.root)
 	}
 	if err != nil {
-		log.Debug("Trie prefetcher failed opening trie", "root", sf.root, "err", err)
+		log.Info("Trie prefetcher failed opening trie", "root", sf.root, "err", err)
 		return
 	}
 	sf.trie = trie

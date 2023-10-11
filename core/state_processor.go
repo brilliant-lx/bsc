@@ -30,6 +30,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/internal/debug"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -88,7 +89,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	if !debug.Handler.EnableTraceCapture(block.Header().Number.Uint64(), "") {
 		debug.Handler.EnableTraceBigBlock(block.Header().Number.Uint64(), txNum, "")
 	}
-
+	log.Info("Process", "block", block.Header().Number)
 	traceMsg := "Process " + block.Header().Number.String()
 	defer debug.Handler.StartRegionAuto(traceMsg)()
 	// Iterate over and process the individual transactions
