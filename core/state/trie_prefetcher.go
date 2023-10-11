@@ -209,6 +209,8 @@ func (p *triePrefetcher) mainLoop() {
 // close iterates over all the subfetchers, aborts any that were left spinning
 // and reports the stats to the metrics subsystem.
 func (p *triePrefetcher) close() {
+	defer debug.Handler.StartRegionAuto("triePrefetcher close")()
+
 	// If the prefetcher is an inactive one, bail out
 	if p.fetches != nil {
 		return
@@ -517,6 +519,8 @@ func (sf *subfetcher) loop() {
 					sf.trie, err = sf.db.OpenStorageTrie(sf.state, sf.addr, sf.root)
 				}
 				if err != nil {
+					log.Info("subfetcher loop open Trie error", "sf.owner", sf.owner,
+						"sf.addr", sf.addr, "err", err)
 					continue
 				}
 			}
