@@ -1414,6 +1414,7 @@ func (s *StateDB) Commit(failPostCommitFunc func(), postCommitFuncs ...func() er
 
 	commmitTrie := func() error {
 		commitErr := func() error {
+			defer debug.Handler.StartRegionAuto("func 0 commmitTrie")()
 			if s.pipeCommit {
 				<-snapUpdated
 				// Due to state verification pipeline, the accounts roots are not updated, leading to the data in the difflayer is not correct, capture the correct data here
@@ -1453,7 +1454,7 @@ func (s *StateDB) Commit(failPostCommitFunc func(), postCommitFuncs ...func() er
 					}
 				}()
 			}
-
+			region1 := debug.Handler.StartTrace("To CommitTrie")
 			for addr := range s.stateObjectsDirty {
 				if obj := s.stateObjects[addr]; !obj.deleted {
 					// Write any contract code associated with the state object
@@ -1478,11 +1479,13 @@ func (s *StateDB) Commit(failPostCommitFunc func(), postCommitFuncs ...func() er
 					return err
 				}
 			}
+			debug.Handler.EndTrace(region1)
 			close(finishCh)
 
 			// The onleaf func is called _serially_, so we can reuse the same account
 			// for unmarshalling every time.
 			if !s.noTrie {
+				region2 := debug.Handler.StartTrace("To trie Commit")
 				var account types.StateAccount
 				root, _, err := s.trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent common.Hash) error {
 					if err := rlp.DecodeBytes(leaf, &account); err != nil {
@@ -1493,6 +1496,8 @@ func (s *StateDB) Commit(failPostCommitFunc func(), postCommitFuncs ...func() er
 					}
 					return nil
 				})
+				debug.Handler.EndTrace(region2)
+
 				if err != nil {
 					return err
 				}
@@ -1501,12 +1506,16 @@ func (s *StateDB) Commit(failPostCommitFunc func(), postCommitFuncs ...func() er
 				}
 			}
 
+			region3 := debug.Handler.StartTrace("To postFunc")
 			for _, postFunc := range postCommitFuncs {
 				err := postFunc()
 				if err != nil {
+					debug.Handler.EndTrace(region3)
 					return err
 				}
 			}
+			debug.Handler.EndTrace(region3)
+
 			wg.Wait()
 			return nil
 		}()
@@ -1529,6 +1538,7 @@ func (s *StateDB) Commit(failPostCommitFunc func(), postCommitFuncs ...func() er
 
 	commitFuncs := []func() error{
 		func() error {
+			defer debug.Handler.StartRegionAuto("func 1 commit code")()
 			codeWriter := s.db.TrieDB().DiskDB().NewBatch()
 			for addr := range s.stateObjectsDirty {
 				if obj := s.stateObjects[addr]; !obj.deleted {
@@ -1561,6 +1571,8 @@ func (s *StateDB) Commit(failPostCommitFunc func(), postCommitFuncs ...func() er
 		func() error {
 			// If snapshotting is enabled, update the snapshot tree with this new version
 			if s.snap != nil {
+				defer debug.Handler.StartRegionAuto("func 2 commit snapshot")()
+
 				if metrics.EnabledExpensive {
 					defer func(start time.Time) { s.SnapshotCommits += time.Since(start) }(time.Now())
 				}

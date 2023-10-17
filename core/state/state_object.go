@@ -459,6 +459,8 @@ func (s *StateObject) updateRoot(db Database) {
 // CommitTrie the storage trie of the object to db.
 // This updates the trie root.
 func (s *StateObject) CommitTrie(db Database) (int, error) {
+	defer debug.Handler.StartRegionAuto("CommitTrie")()
+
 	// If nothing changed, don't bother with hashing anything
 	if s.updateTrie(db) == nil {
 		if s.trie != nil && s.data.Root != emptyRoot {
