@@ -1603,6 +1603,7 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 	}
 
 	commmitTrie := func() error {
+		defer debug.Handler.StartRegionAuto("commmitTrie")()
 		commitErr := func() error {
 			if s.pipeCommit {
 				<-snapUpdated
@@ -1675,6 +1676,7 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 				}
 			}
 
+			region1 := debug.Handler.StartTrace("Nodes.merge")
 			for i := 0; i < tasksNum; i++ {
 				res := <-taskResults
 				if res.err != nil {
@@ -1690,18 +1692,26 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 					}
 				}
 			}
+			debug.Handler.EndTrace(region1)
+
 			close(finishCh)
 
 			if !s.noTrie {
+				region2 := debug.Handler.StartTrace("trie.Commit")
 				root, set, err := s.trie.Commit(true)
 				if err != nil {
+					debug.Handler.EndTrace(region2)
 					return err
 				}
+				debug.Handler.EndTrace(region2)
 				// Merge the dirty nodes of account trie into global set
 				if set != nil {
+					region3 := debug.Handler.StartTrace("nodes.Merge")
 					if err := nodes.Merge(set); err != nil {
+						debug.Handler.EndTrace(region3)
 						return err
 					}
+					debug.Handler.EndTrace(region3)
 				}
 
 				origin := s.originalRoot
@@ -1711,9 +1721,13 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 
 				if root != origin {
 					start := time.Now()
+					region4 := debug.Handler.StartTrace("TrieDB.Update")
 					if err := s.db.TrieDB().Update(root, origin, block, nodes, triestate.New(s.accountsOrigin, s.storagesOrigin, incomplete)); err != nil {
+						debug.Handler.EndTrace(region4)
 						return err
 					}
+					debug.Handler.EndTrace(region4)
+
 					s.originalRoot = root
 					if metrics.EnabledExpensive {
 						s.TrieDBCommits += time.Since(start)
@@ -1749,6 +1763,7 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 
 	commitFuncs := []func() error{
 		func() error {
+			defer debug.Handler.StartRegionAuto("commitFuncs 1, code")()
 			codeWriter := s.db.DiskDB().NewBatch()
 			for addr := range s.stateObjectsDirty {
 				if obj := s.stateObjects[addr]; !obj.deleted {
@@ -1780,6 +1795,7 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 			return nil
 		},
 		func() error {
+			defer debug.Handler.StartRegionAuto("commitFuncs 2, snapshot")()
 			// If snapshotting is enabled, update the snapshot tree with this new version
 			if s.snap != nil {
 				if metrics.EnabledExpensive {

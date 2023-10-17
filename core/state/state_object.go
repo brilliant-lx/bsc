@@ -462,6 +462,7 @@ func (s *stateObject) updateRoot() {
 
 // commit returns the changes made in storage trie and updates the account data.
 func (s *stateObject) commit() (*trienode.NodeSet, error) {
+	defer debug.Handler.StartRegionAuto("stateObject commit")()
 	tr, err := s.updateTrie()
 	if err != nil {
 		return nil, err
