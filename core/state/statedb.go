@@ -1631,7 +1631,6 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 				return err
 			}
 
-			tasks := make(chan func())
 			type tastResult struct {
 				err     error
 				nodeSet *trienode.NodeSet
@@ -1641,6 +1640,7 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 			finishCh := make(chan struct{})
 
 			threads := gopool.Threads(len(s.stateObjectsDirty))
+			tasks := make(chan func(), threads)
 			wg := sync.WaitGroup{}
 			for i := 0; i < threads; i++ {
 				wg.Add(1)
