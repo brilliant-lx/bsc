@@ -1640,7 +1640,7 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 			finishCh := make(chan struct{})
 
 			threads := gopool.Threads(len(s.stateObjectsDirty))
-			tasks := make(chan func(), threads)
+			tasks := make(chan func(), len(s.stateObjectsDirty))
 			wg := sync.WaitGroup{}
 			for i := 0; i < threads; i++ {
 				wg.Add(1)
@@ -1661,6 +1661,7 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 
 			for addr := range s.stateObjectsDirty {
 				if obj := s.stateObjects[addr]; !obj.deleted {
+					region1_2 := debug.Handler.StartTrace("send task")
 					tasks <- func() {
 						// Write any storage changes in the state object to its storage trie
 						if !s.noTrie {
@@ -1676,6 +1677,7 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 							taskResults <- tastResult{nil, nil}
 						}
 					}
+					debug.Handler.EndTrace(region1_2)
 					tasksNum++
 				}
 			}
