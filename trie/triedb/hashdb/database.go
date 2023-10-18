@@ -593,6 +593,7 @@ func (db *Database) Initialized(genesisRoot common.Hash) bool {
 // Update inserts the dirty nodes in provided nodeset into database and link the
 // account trie with multiple storage tries if necessary.
 func (db *Database) Update(root common.Hash, parent common.Hash, block uint64, nodes *trienode.MergedNodeSet, states *triestate.Set) error {
+	defer debug.Handler.StartRegionAuto("hashdb Update")()
 	// Ensure the parent state is present and signal a warning if not.
 	if parent != types.EmptyRootHash {
 		if blob, _ := db.Node(parent); len(blob) == 0 {
@@ -615,9 +616,10 @@ func (db *Database) Update(root common.Hash, parent common.Hash, block uint64, n
 		}
 		order = append(order, owner)
 	}
-	if _, ok := nodes.Sets[common.Hash{}]; ok {
-		order = append(order, common.Hash{})
-	}
+	// if _, ok := nodes.Sets[common.Hash{}]; ok {
+	// 	order = append(order, common.Hash{})
+	// }
+	region1 := debug.Handler.StartTrace("hashdb Update 1")
 	for _, owner := range order {
 		subset := nodes.Sets[owner]
 		subset.ForEachWithOrder(func(path string, n *trienode.Node) {
@@ -627,6 +629,19 @@ func (db *Database) Update(root common.Hash, parent common.Hash, block uint64, n
 			db.insert(n.Hash, n.Blob)
 		})
 	}
+	debug.Handler.EndTrace(region1)
+	region2 := debug.Handler.StartTrace("hashdb Update 2")
+	if _, ok := nodes.Sets[common.Hash{}]; ok {
+		subset := nodes.Sets[common.Hash{}]
+		subset.ForEachWithOrder(func(path string, n *trienode.Node) {
+			if n.IsDeleted() {
+				return // ignore deletion
+			}
+			db.insert(n.Hash, n.Blob)
+		})
+	}
+	debug.Handler.EndTrace(region2)
+
 	// Link up the account trie and storage trie if the node points
 	// to an account trie leaf.
 	if set, present := nodes.Sets[common.Hash{}]; present {

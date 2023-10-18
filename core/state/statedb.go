@@ -1649,7 +1649,9 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 					for {
 						select {
 						case task := <-tasks:
+							region1_2 := debug.Handler.StartTrace("task()")
 							task()
+							debug.Handler.EndTrace(region1_2)
 						case <-finishCh:
 							return
 						}
@@ -1666,7 +1668,9 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 								taskResults <- tastResult{err, nil}
 								return
 							} else {
+								region1_1 := debug.Handler.StartTrace("tastResult")
 								taskResults <- tastResult{nil, set}
+								debug.Handler.EndTrace(region1_1)
 							}
 						} else {
 							taskResults <- tastResult{nil, nil}
