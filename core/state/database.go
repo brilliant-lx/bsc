@@ -19,7 +19,6 @@ package state
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -153,21 +152,21 @@ func NewDatabaseWithConfig(db ethdb.Database, config *trie.Config) Database {
 func NewDatabaseWithConfigAndCache(db ethdb.Database, config *trie.Config) Database {
 	csc, _ := lru.New(codeSizeCacheSize)
 	cc, _ := lru.New(codeCacheSize)
-	atc, _ := lru.New(accountTrieCacheSize)
-	stc, _ := lru.New(storageTrieCacheSize)
+	// atc, _ := lru.New(accountTrieCacheSize)
+	// stc, _ := lru.New(storageTrieCacheSize)
 	noTries := config != nil && config.NoTries
 
 	database := &cachingDB{
 		db:               trie.NewDatabaseWithConfig(db, config),
 		codeSizeCache:    csc,
 		codeCache:        cc,
-		accountTrieCache: atc,
-		storageTrieCache: stc,
+		accountTrieCache: nil,
+		storageTrieCache: nil,
 		noTries:          noTries,
 	}
-	if !noTries {
-		go database.purgeLoop()
-	}
+	// if !noTries {
+	// 	go database.purgeLoop()
+	// }
 	return database
 }
 
@@ -185,6 +184,7 @@ type triePair struct {
 	trie Trie
 }
 
+/*
 func (db *cachingDB) purgeLoop() {
 	for {
 		time.Sleep(purgeInterval * time.Second)
@@ -198,6 +198,7 @@ func (db *cachingDB) purgeLoop() {
 		}
 	}
 }
+*/
 
 // OpenTrie opens the main account trie at a specific root hash.
 func (db *cachingDB) OpenTrie(root common.Hash) (Trie, error) {
