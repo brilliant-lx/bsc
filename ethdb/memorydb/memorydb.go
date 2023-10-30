@@ -25,6 +25,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/ethereum/go-ethereum/internal/debug"
 )
 
 var (
@@ -241,6 +242,8 @@ func (b *batch) ValueSize() int {
 
 // Write flushes any accumulated data to the memory database.
 func (b *batch) Write() error {
+	defer debug.Handler.StartRegionAuto("memeorydb batch Write")()
+
 	b.db.lock.Lock()
 	defer b.db.lock.Unlock()
 

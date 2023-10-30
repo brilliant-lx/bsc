@@ -1586,17 +1586,24 @@ func (bc *BlockChain) writeBlockWithState(block *types.Block, receipts []*types.
 	go func() {
 		defer debug.Handler.StartRegionAuto("writeBlockWithState write block, receipt, preimages...")()
 		blockBatch := bc.db.NewBatch()
+		defer debug.Handler.StartRegionAuto("WriteTd")()
 		rawdb.WriteTd(blockBatch, block.Hash(), block.NumberU64(), externTd)
+		defer debug.Handler.StartRegionAuto("WriteBlock")()
 		rawdb.WriteBlock(blockBatch, block)
+		defer debug.Handler.StartRegionAuto("WriteReceipts")()
 		rawdb.WriteReceipts(blockBatch, block.Hash(), block.NumberU64(), receipts)
+		defer debug.Handler.StartRegionAuto("WritePreimages")()
 		rawdb.WritePreimages(blockBatch, state.Preimages())
+		defer debug.Handler.StartRegionAuto("Write")()
 		if err := blockBatch.Write(); err != nil {
 			log.Crit("Failed to write block into disk", "err", err)
 		}
+		defer debug.Handler.StartRegionAuto("wg.Done")()
 		wg.Done()
 	}()
 
 	tryCommitTrieDB := func() error {
+		defer debug.Handler.StartRegionAuto("postCommit, tryCommitTrieDB")()
 		bc.commitLock.Lock()
 		defer bc.commitLock.Unlock()
 

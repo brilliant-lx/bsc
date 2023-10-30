@@ -1793,6 +1793,7 @@ func (s *StateDB) Commit(block uint64, failPostCommitFunc func(), postCommitFunc
 				}
 			}
 			if codeWriter.ValueSize() > 0 {
+				defer debug.Handler.StartRegionAuto("commitFuncs 1, codeWriter Write")()
 				if err := codeWriter.Write(); err != nil {
 					log.Crit("Failed to commit dirty codes", "error", err)
 					return err
