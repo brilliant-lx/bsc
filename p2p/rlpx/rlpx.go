@@ -32,10 +32,12 @@ import (
 	"io"
 	mrand "math/rand"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/ecies"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/golang/snappy"
 	"golang.org/x/crypto/sha3"
@@ -228,6 +230,9 @@ func (c *Conn) Write(code uint64, data []byte) (uint32, error) {
 	return wireSize, err
 }
 
+var msgRecord sync.Map     // [uint64]uint64
+var msgRecordSize sync.Map // [uint64]uint64
+
 func (h *sessionState) writeFrame(conn io.Writer, code uint64, data []byte) error {
 	h.wbuf.reset()
 
@@ -256,6 +261,23 @@ func (h *sessionState) writeFrame(conn io.Writer, code uint64, data []byte) erro
 
 	// Write frame MAC.
 	h.wbuf.Write(h.egressMAC.computeFrame(framedata))
+
+	//
+	var counter uint64 = 1
+	if val, ok := msgRecord.Load(code); ok {
+		counter = val.(uint64) + 1
+	}
+	msgRecord.Store(code, counter)
+
+	var counterSize uint64 = uint64(len(h.wbuf.data))
+	if val, ok := msgRecordSize.Load(code); ok {
+		counterSize = val.(uint64) + uint64(len(h.wbuf.data))
+	}
+	msgRecordSize.Store(code, counterSize)
+
+	if counter%10000 == 0 {
+		log.Info("writeFrame", "msgcode", code, "counter", counter, "msgRecordSize", counterSize)
+	}
 
 	_, err := conn.Write(h.wbuf.data)
 	return err

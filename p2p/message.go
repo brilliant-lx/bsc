@@ -111,7 +111,7 @@ func Send(w MsgWriter, msgcode uint64, data interface{}) error {
 		counter = val.(uint64) + 1
 	}
 	msgRecord.Store(msgcode, counter)
-	if counter%1000 == 0 {
+	if counter%10000 == 0 {
 		log.Info("P2P Send", "msgcode", msgcode, "counter", counter)
 	}
 	return w.WriteMsg(Msg{Code: msgcode, Size: uint32(size), Payload: r})
