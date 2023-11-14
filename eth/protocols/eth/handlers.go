@@ -24,8 +24,16 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+)
+
+var (
+	headerTrafficMeter  = metrics.NewRegisteredMeter("p2p/egress/header", nil)
+	bodyTrafficMeter    = metrics.NewRegisteredMeter("p2p/egress/body", nil)
+	stateTrafficMeter   = metrics.NewRegisteredMeter("p2p/egress/state", nil)
+	receiptTrafficMeter = metrics.NewRegisteredMeter("p2p/egress/receipt", nil)
 )
 
 // handleGetBlockHeaders66 is the eth/66 version of handleGetBlockHeaders
@@ -36,6 +44,8 @@ func handleGetBlockHeaders66(backend Backend, msg Decoder, peer *Peer) error {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
 	response := ServiceGetBlockHeadersQuery(backend.Chain(), query.GetBlockHeadersPacket, peer)
+
+	headerTrafficMeter.Mark(int64(len(response)))
 	return peer.ReplyBlockHeadersRLP(query.RequestId, response)
 }
 
@@ -208,7 +218,9 @@ func handleGetBlockBodies66(backend Backend, msg Decoder, peer *Peer) error {
 	if err := msg.Decode(&query); err != nil {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
+
 	response := ServiceGetBlockBodiesQuery(backend.Chain(), query.GetBlockBodiesPacket)
+	bodyTrafficMeter.Mark(int64(len(response)))
 	return peer.ReplyBlockBodiesRLP(query.RequestId, response)
 }
 
@@ -240,6 +252,8 @@ func handleGetNodeData66(backend Backend, msg Decoder, peer *Peer) error {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
 	response := ServiceGetNodeDataQuery(backend.Chain(), query.GetNodeDataPacket)
+
+	stateTrafficMeter.Mark(int64(len(response)))
 	return peer.ReplyNodeData(query.RequestId, response)
 }
 
@@ -277,6 +291,8 @@ func handleGetReceipts66(backend Backend, msg Decoder, peer *Peer) error {
 		return fmt.Errorf("%w: message %v: %v", errDecode, msg, err)
 	}
 	response := ServiceGetReceiptsQuery(backend.Chain(), query.GetReceiptsPacket)
+
+	receiptTrafficMeter.Mark(int64(len(response)))
 	return peer.ReplyReceiptsRLP(query.RequestId, response)
 }
 

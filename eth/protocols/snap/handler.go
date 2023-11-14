@@ -57,6 +57,13 @@ const (
 	maxTrieNodeTimeSpent = 5 * time.Second
 )
 
+var (
+	rangeTrafficMeter   = metrics.NewRegisteredMeter("p2p/egress/snap_range", nil)
+	storageTrafficMeter = metrics.NewRegisteredMeter("p2p/egress/snap_storage", nil)
+	codeTrafficMeter    = metrics.NewRegisteredMeter("p2p/egress/snap_code", nil)
+	trieTrafficMeter    = metrics.NewRegisteredMeter("p2p/egress/snap_trie", nil)
+)
+
 // Handler is a callback to invoke from an outside runner after the boilerplate
 // exchanges have passed.
 type Handler func(peer *Peer) error
@@ -164,6 +171,14 @@ func HandleMessage(backend Backend, peer *Peer) error {
 		// Service the request, potentially returning nothing in case of errors
 		accounts, proofs := ServiceGetAccountRangeQuery(backend.Chain(), &req)
 
+		if size, _, err := rlp.EncodeToReader(&AccountRangePacket{
+			ID:       req.ID,
+			Accounts: accounts,
+			Proof:    proofs,
+		}); err == nil {
+			rangeTrafficMeter.Mark(int64(size))
+		}
+
 		// Send back anything accumulated (or empty in case of errors)
 		return p2p.Send(peer.rw, AccountRangeMsg, &AccountRangePacket{
 			ID:       req.ID,
@@ -196,6 +211,13 @@ func HandleMessage(backend Backend, peer *Peer) error {
 		// Service the request, potentially returning nothing in case of errors
 		slots, proofs := ServiceGetStorageRangesQuery(backend.Chain(), &req)
 
+		if size, _, err := rlp.EncodeToReader(&StorageRangesPacket{
+			ID:    req.ID,
+			Slots: slots,
+			Proof: proofs,
+		}); err == nil {
+			storageTrafficMeter.Mark(int64(size))
+		}
 		// Send back anything accumulated (or empty in case of errors)
 		return p2p.Send(peer.rw, StorageRangesMsg, &StorageRangesPacket{
 			ID:    req.ID,
@@ -230,6 +252,12 @@ func HandleMessage(backend Backend, peer *Peer) error {
 		// Service the request, potentially returning nothing in case of errors
 		codes := ServiceGetByteCodesQuery(backend.Chain(), &req)
 
+		if size, _, err := rlp.EncodeToReader(&ByteCodesPacket{
+			ID:    req.ID,
+			Codes: codes,
+		}); err == nil {
+			codeTrafficMeter.Mark(int64(size))
+		}
 		// Send back anything accumulated (or empty in case of errors)
 		return p2p.Send(peer.rw, ByteCodesMsg, &ByteCodesPacket{
 			ID:    req.ID,
@@ -256,6 +284,13 @@ func HandleMessage(backend Backend, peer *Peer) error {
 		nodes, err := ServiceGetTrieNodesQuery(backend.Chain(), &req, start)
 		if err != nil {
 			return err
+		}
+
+		if size, _, err := rlp.EncodeToReader(&TrieNodesPacket{
+			ID:    req.ID,
+			Nodes: nodes,
+		}); err == nil {
+			trieTrafficMeter.Mark(int64(size))
 		}
 		// Send back anything accumulated (or empty in case of errors)
 		return p2p.Send(peer.rw, TrieNodesMsg, &TrieNodesPacket{

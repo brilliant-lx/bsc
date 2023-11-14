@@ -25,6 +25,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/p2p"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -55,6 +56,12 @@ const (
 	// dropping broadcasts. Similarly to block propagations, there's no point to queue
 	// above some healthy uncle limit, so use that.
 	maxQueuedBlockAnns = 4
+)
+
+var (
+	txRawTrafficMeter       = metrics.NewRegisteredMeter("p2p/egress/tx_raw", nil)
+	txHashTrafficMeter      = metrics.NewRegisteredMeter("p2p/egress/tx_hash", nil)
+	txRawPooledTrafficMeter = metrics.NewRegisteredMeter("p2p/egress/tx_raw_pooled", nil)
 )
 
 // max is a helper function which returns the larger of the two given integers.
@@ -217,6 +224,10 @@ func (p *Peer) SendTransactions(txs types.Transactions) error {
 	for _, tx := range txs {
 		p.knownTxs.Add(tx.Hash())
 	}
+
+	if size, _, err := rlp.EncodeToReader(txs); err == nil {
+		txRawTrafficMeter.Mark(int64(size))
+	}
 	return p2p.Send(p.rw, TransactionsMsg, txs)
 }
 
@@ -244,6 +255,9 @@ func (p *Peer) AsyncSendTransactions(hashes []common.Hash) {
 func (p *Peer) sendPooledTransactionHashes(hashes []common.Hash) error {
 	// Mark all the transactions as known, but ensure we don't overflow our limits
 	p.knownTxs.Add(hashes...)
+	if size, _, err := rlp.EncodeToReader(NewPooledTransactionHashesPacket(hashes)); err == nil {
+		txHashTrafficMeter.Mark(int64(size))
+	}
 	return p2p.Send(p.rw, NewPooledTransactionHashesMsg, NewPooledTransactionHashesPacket(hashes))
 }
 
@@ -266,6 +280,13 @@ func (p *Peer) AsyncSendPooledTransactionHashes(hashes []common.Hash) {
 func (p *Peer) ReplyPooledTransactionsRLP(id uint64, hashes []common.Hash, txs []rlp.RawValue) error {
 	// Mark all the transactions as known, but ensure we don't overflow our limits
 	p.knownTxs.Add(hashes...)
+
+	if size, _, err := rlp.EncodeToReader(&PooledTransactionsRLPPacket66{
+		RequestId:                   id,
+		PooledTransactionsRLPPacket: txs,
+	}); err == nil {
+		txRawPooledTrafficMeter.Mark(int64(size))
+	}
 
 	// Not packed into PooledTransactionsPacket to avoid RLP decoding
 	return p2p.Send(p.rw, PooledTransactionsMsg, &PooledTransactionsRLPPacket66{
