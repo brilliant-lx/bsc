@@ -22,10 +22,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/event"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/p2p/enode"
 	"github.com/ethereum/go-ethereum/rlp"
 )
@@ -95,12 +97,22 @@ type MsgReadWriter interface {
 	MsgWriter
 }
 
+var msgRecord sync.Map // [uint64]uint64
+
 // Send writes an RLP-encoded message with the given code.
 // data should encode as an RLP list.
 func Send(w MsgWriter, msgcode uint64, data interface{}) error {
 	size, r, err := rlp.EncodeToReader(data)
 	if err != nil {
 		return err
+	}
+	var counter uint64 = 1
+	if val, ok := msgRecord.Load(msgcode); ok {
+		counter = val.(uint64) + 1
+	}
+	msgRecord.Store(msgcode, counter)
+	if counter%1000 == 0 {
+		log.Info("P2P Send", "msgcode", msgcode, "counter", counter)
 	}
 	return w.WriteMsg(Msg{Code: msgcode, Size: uint32(size), Payload: r})
 }
