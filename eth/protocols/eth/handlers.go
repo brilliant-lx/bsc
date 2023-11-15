@@ -24,8 +24,23 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/log"
+	"github.com/ethereum/go-ethereum/metrics"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
+)
+
+const (
+	BlockRange0         uint64 = 10000000
+	BlockRange1         uint64 = 20000000
+	BlockRange2         uint64 = 30000000
+	GetHeaderRange0Name        = "get/header/range0"
+	GetHeaderRange1Name        = "get/header/range1"
+	GetHeaderRange2Name        = "get/header/range2"
+	GetHeaderRange3Name        = "get/header/range3"
+	GetBodyRange0Name          = "get/body/range0"
+	GetBodyRange1Name          = "get/body/range1"
+	GetBodyRange2Name          = "get/body/range2"
+	GetBodyRange3Name          = "get/body/range3"
 )
 
 // handleGetBlockHeaders66 is the eth/66 version of handleGetBlockHeaders
@@ -61,6 +76,7 @@ func serviceNonContiguousBlockHeaderQuery(chain *core.BlockChain, query *GetBloc
 		headers []rlp.RawValue
 		unknown bool
 		lookups int
+		blkNum  uint64
 	)
 	for !unknown && len(headers) < int(query.Amount) && bytes < softResponseLimit &&
 		len(headers) < maxHeadersServe && lookups < 2*maxHeadersServe {
@@ -83,6 +99,7 @@ func serviceNonContiguousBlockHeaderQuery(chain *core.BlockChain, query *GetBloc
 		if origin == nil {
 			break
 		}
+		blkNum = origin.Number.Uint64()
 		if rlpData, err := rlp.EncodeToBytes(origin); err != nil {
 			log.Crit("Unable to decode our own headers", "err", err)
 		} else {
@@ -136,6 +153,16 @@ func serviceNonContiguousBlockHeaderQuery(chain *core.BlockChain, query *GetBloc
 			query.Origin.Number += query.Skip + 1
 		}
 	}
+
+	if blkNum < BlockRange0 {
+		metrics.GetOrRegisterGauge(GetHeaderRange0Name, nil).Inc(int64(len(headers)))
+	} else if blkNum < BlockRange1 {
+		metrics.GetOrRegisterGauge(GetHeaderRange1Name, nil).Inc(int64(len(headers)))
+	} else if blkNum < BlockRange2 {
+		metrics.GetOrRegisterGauge(GetHeaderRange2Name, nil).Inc(int64(len(headers)))
+	} else {
+		metrics.GetOrRegisterGauge(GetHeaderRange3Name, nil).Inc(int64(len(headers)))
+	}
 	return headers
 }
 
@@ -158,6 +185,16 @@ func serviceContiguousBlockHeaderQuery(chain *core.BlockChain, query *GetBlockHe
 				headers[i], headers[j] = headers[j], headers[i]
 			}
 		}
+
+		if from < BlockRange0 {
+			metrics.GetOrRegisterGauge(GetHeaderRange0Name, nil).Inc(int64(len(headers)))
+		} else if from < BlockRange1 {
+			metrics.GetOrRegisterGauge(GetHeaderRange1Name, nil).Inc(int64(len(headers)))
+		} else if from < BlockRange2 {
+			metrics.GetOrRegisterGauge(GetHeaderRange2Name, nil).Inc(int64(len(headers)))
+		} else {
+			metrics.GetOrRegisterGauge(GetHeaderRange3Name, nil).Inc(int64(len(headers)))
+		}
 		return headers
 	}
 	// Hash mode.
@@ -174,12 +211,23 @@ func serviceContiguousBlockHeaderQuery(chain *core.BlockChain, query *GetBlockHe
 		return headers
 	}
 	num := header.Number.Uint64()
+
 	if !query.Reverse {
 		// Theoretically, we are tasked to deliver header by hash H, and onwards.
 		// However, if H is not canon, we will be unable to deliver any descendants of
 		// H.
 		if canonHash := chain.GetCanonicalHash(num); canonHash != hash {
 			// Not canon, we can't deliver descendants
+			if num < BlockRange0 {
+				metrics.GetOrRegisterGauge(GetHeaderRange0Name, nil).Inc(int64(len(headers)))
+			} else if num < BlockRange1 {
+				metrics.GetOrRegisterGauge(GetHeaderRange1Name, nil).Inc(int64(len(headers)))
+			} else if num < BlockRange2 {
+				metrics.GetOrRegisterGauge(GetHeaderRange2Name, nil).Inc(int64(len(headers)))
+			} else {
+				metrics.GetOrRegisterGauge(GetHeaderRange3Name, nil).Inc(int64(len(headers)))
+			}
+
 			return headers
 		}
 		descendants := chain.GetHeadersFrom(num+count-1, count-1)
@@ -187,6 +235,15 @@ func serviceContiguousBlockHeaderQuery(chain *core.BlockChain, query *GetBlockHe
 			descendants[i], descendants[j] = descendants[j], descendants[i]
 		}
 		headers = append(headers, descendants...)
+		if num < BlockRange0 {
+			metrics.GetOrRegisterGauge(GetHeaderRange0Name, nil).Inc(int64(len(headers)))
+		} else if num < BlockRange1 {
+			metrics.GetOrRegisterGauge(GetHeaderRange1Name, nil).Inc(int64(len(headers)))
+		} else if num < BlockRange2 {
+			metrics.GetOrRegisterGauge(GetHeaderRange2Name, nil).Inc(int64(len(headers)))
+		} else {
+			metrics.GetOrRegisterGauge(GetHeaderRange3Name, nil).Inc(int64(len(headers)))
+		}
 		return headers
 	}
 	{ // Last mode: deliver ancestors of H
@@ -197,6 +254,15 @@ func serviceContiguousBlockHeaderQuery(chain *core.BlockChain, query *GetBlockHe
 			}
 			rlpData, _ := rlp.EncodeToBytes(header)
 			headers = append(headers, rlpData)
+		}
+		if num < BlockRange0 {
+			metrics.GetOrRegisterGauge(GetHeaderRange0Name, nil).Inc(int64(len(headers)))
+		} else if num < BlockRange1 {
+			metrics.GetOrRegisterGauge(GetHeaderRange1Name, nil).Inc(int64(len(headers)))
+		} else if num < BlockRange2 {
+			metrics.GetOrRegisterGauge(GetHeaderRange2Name, nil).Inc(int64(len(headers)))
+		} else {
+			metrics.GetOrRegisterGauge(GetHeaderRange3Name, nil).Inc(int64(len(headers)))
 		}
 		return headers
 	}
@@ -225,6 +291,20 @@ func ServiceGetBlockBodiesQuery(chain *core.BlockChain, query GetBlockBodiesPack
 			lookups >= 2*maxBodiesServe {
 			break
 		}
+		blk := chain.GetBlockByHash(hash)
+		if blk != nil {
+			blkNum := blk.NumberU64()
+			if blkNum < BlockRange0 {
+				metrics.GetOrRegisterGauge(GetBodyRange0Name, nil).Inc(1)
+			} else if blkNum < BlockRange1 {
+				metrics.GetOrRegisterGauge(GetBodyRange1Name, nil).Inc(1)
+			} else if blkNum < BlockRange2 {
+				metrics.GetOrRegisterGauge(GetBodyRange2Name, nil).Inc(1)
+			} else {
+				metrics.GetOrRegisterGauge(GetBodyRange3Name, nil).Inc(1)
+			}
+		}
+
 		if data := chain.GetBodyRLP(hash); len(data) != 0 {
 			bodies = append(bodies, data)
 			bytes += len(data)
