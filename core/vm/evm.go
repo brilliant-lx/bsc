@@ -139,7 +139,8 @@ type EVM struct {
 	// callGasTemp holds the gas available for the current call. This is needed because the
 	// available gas is calculated in gasCall* according to the 63/64 rule and later
 	// applied in opCall*.
-	callGasTemp uint64
+	callGasTemp      uint64
+	EnableOpcodeDump bool
 }
 
 // NewEVM returns a new EVM. The returned EVM is not thread safe and should
@@ -249,6 +250,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		// Initialise a new contract and set the code that is to be used by the EVM.
 		// The contract is a scoped environment for this execution context only.
 		code := evm.StateDB.GetCode(addr)
+
 		if len(code) == 0 {
 			ret, err = nil, nil // gas is unchanged
 		} else {

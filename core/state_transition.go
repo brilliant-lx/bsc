@@ -28,6 +28,7 @@ import (
 	"github.com/ethereum/go-ethereum/consensus/misc/eip4844"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -425,6 +426,9 @@ func (st *StateTransition) TransitionDb() (*ExecutionResult, error) {
 		st.state.SetNonce(msg.From, st.state.GetNonce(sender.Address())+1)
 		ret, st.gasRemaining, vmerr = st.evm.Call(sender, st.to(), msg.Data, st.gasRemaining, msg.Value)
 	}
+	if st.evm.EnableOpcodeDump {
+		log.Info("after call", "st.gasRemaining", st.gasRemaining)
+	}
 
 	if !rules.IsLondon {
 		// Before EIP-3529: refunds were capped to gasUsed / 2
@@ -459,7 +463,9 @@ func (st *StateTransition) refundGas(refundQuotient uint64) {
 		refund = st.state.GetRefund()
 	}
 	st.gasRemaining += refund
-
+	if st.evm.EnableOpcodeDump {
+		log.Info("refundGas", "refund", refund, "st.gasRemaining", st.gasRemaining)
+	}
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gasRemaining), st.msg.GasPrice)
 	st.state.AddBalance(st.msg.From, remaining)

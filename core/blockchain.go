@@ -2034,6 +2034,7 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 		if err != nil {
 			bc.reportBlock(block, receipts, err)
 			statedb.StopPrefetcher()
+			time.Sleep(30 * time.Second)
 			return it.index, err
 		}
 		ptime := time.Since(pstart)
@@ -2048,6 +2049,14 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 		}
 		vtime := time.Since(vstart)
 		proctime := time.Since(start) // processing + validation
+
+		// bad block: 35547779
+		var stopBlock uint64 = 35547779
+		if block.NumberU64() == stopBlock {
+			log.Info("stopBlock hit sleep 30s", "block number:", stopBlock)
+			time.Sleep(30 * time.Second)
+			return it.index, fmt.Errorf("stopBlock for debug")
+		}
 
 		bc.cacheReceipts(block.Hash(), receipts)
 		bc.cacheBlock(block.Hash(), block)

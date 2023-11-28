@@ -29,6 +29,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/log"
 	"github.com/ethereum/go-ethereum/params"
 )
 
@@ -68,6 +69,9 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 		gp          = new(GasPool).AddGas(block.GasLimit())
 	)
 
+	if header.Number.Uint64() == 33851236 {
+		log.Info("StateProcessor Process", "Number", header.Number)
+	}
 	var receipts = make([]*types.Receipt, 0)
 	// Mutate the block and state according to any hard-fork specs
 	if p.config.DAOForkSupport && p.config.DAOForkBlock != nil && p.config.DAOForkBlock.Cmp(block.Number()) == 0 {
@@ -139,7 +143,25 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	return statedb, receipts, allLogs, *usedGas, nil
 }
 
+// == mainnet
+var badTx1 common.Hash = common.HexToHash("0x1909a5c9c52be115344d26faf30fff0bd8f8422c67cd01afa7909e666b453604")
+var badTx2 common.Hash = common.HexToHash("0xa6c46ef7f1fd3b398077b2604c40cfa6d1b5ea02d05f8e1a76826a86a4bb9a22")
+var badTx3 common.Hash = common.HexToHash("0x7eba4edc7c1806d6ee1691d43513838931de5c94f9da56ec865721b402f775b0")
+var badTx4 common.Hash = common.HexToHash("0x5217324f0711af744fe8e12d73f13fdb11805c8e29c0c095ac747b7e4563e935")
+
+// == testnet
+var badTxChapel1 common.Hash = common.HexToHash("0x7ce9a3cf77108fcc85c1e84e88e363e3335eca515dfcf2feb2011729878b13a7")
+
 func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM, receiptProcessors ...ReceiptProcessor) (*types.Receipt, error) {
+	if tx.Hash() == badTx1 || tx.Hash() == badTx2 || tx.Hash() == badTx3 || tx.Hash() == badTx4 ||
+		tx.Hash() == badTxChapel1 {
+		log.Info("bad hash hit", "blockNumber", blockNumber, "txHash", tx.Hash())
+		evm.EnableOpcodeDump = true
+		statedb.EnableStateDump = true
+	} else {
+		evm.EnableOpcodeDump = false
+		statedb.EnableStateDump = false
+	}
 	// Create a new context to be used in the EVM environment.
 	txContext := NewEVMTxContext(msg)
 	evm.Reset(txContext, statedb)
@@ -169,6 +191,9 @@ func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, sta
 	}
 	receipt.TxHash = tx.Hash()
 	receipt.GasUsed = result.UsedGas
+	if blockNumber.Uint64() == 33851236 {
+		log.Info("Bad block receipt", "TxHash", tx.Hash(), "GasUsed", result.UsedGas, "cumulativeGasUsed", receipt.CumulativeGasUsed)
+	}
 
 	// If the transaction created a contract, store the creation address in the receipt.
 	if msg.To == nil {

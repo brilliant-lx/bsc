@@ -195,6 +195,7 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 		op = contract.GetOp(pc)
 		operation := in.table[op]
 		cost = operation.constantGas // For tracing
+
 		// Validate stack
 		if sLen := stack.len(); sLen < operation.minStack {
 			return nil, &ErrStackUnderflow{stackLen: sLen, required: operation.minStack}
@@ -239,10 +240,18 @@ func (in *EVMInterpreter) Run(contract *Contract, input []byte, readOnly bool) (
 			if memorySize > 0 {
 				mem.Resize(memorySize)
 			}
+			if in.evm.EnableOpcodeDump {
+				log.Info("Run", "opcode", op, "name", op.String(), "constantGas", cost, "dynamicCost", dynamicCost)
+			}
 		} else if debug {
 			in.evm.Config.Tracer.CaptureState(pc, op, gasCopy, cost, callContext, in.returnData, in.evm.depth, err)
 			logged = true
+		} else {
+			if in.evm.EnableOpcodeDump {
+				log.Info("Run", "opcode", op, "name", op.String(), "constantGas", cost, "dynamicCost", 0)
+			}
 		}
+
 		// execute the operation
 		res, err = operation.execute(&pc, in, callContext)
 		if err != nil {
