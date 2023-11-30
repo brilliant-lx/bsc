@@ -104,11 +104,11 @@ func newObject(db *StateDB, address common.Address, acct *types.StateAccount) *s
 	if acct == nil {
 		acct = types.NewEmptyStateAccount()
 	}
-	var storageMap *sync.Map
+	// var storageMap *sync.Map
 	// Check whether the storage exist in pool, new originStorage if not exist
-	if db != nil && db.storagePool != nil {
-		storageMap = db.GetStorage(address)
-	}
+	// if db != nil && db.storagePool != nil {
+	// 	storageMap = db.GetStorage(address)
+	// }
 
 	return &stateObject{
 		db:                  db,
@@ -116,7 +116,7 @@ func newObject(db *StateDB, address common.Address, acct *types.StateAccount) *s
 		addrHash:            crypto.Keccak256Hash(address[:]),
 		origin:              origin,
 		data:                *acct,
-		sharedOriginStorage: storageMap,
+		sharedOriginStorage: nil,
 		originStorage:       make(Storage),
 		pendingStorage:      make(Storage),
 		dirtyStorage:        make(Storage),
