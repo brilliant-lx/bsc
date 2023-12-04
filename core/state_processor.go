@@ -151,10 +151,11 @@ var badTx4 common.Hash = common.HexToHash("0x5217324f0711af744fe8e12d73f13fdb118
 
 // == testnet
 var badTxChapel1 common.Hash = common.HexToHash("0x7ce9a3cf77108fcc85c1e84e88e363e3335eca515dfcf2feb2011729878b13a7")
+var badTxChapel2 common.Hash = common.HexToHash("0xe3895eb95605d6b43ceec7876e6ff5d1c903e572bf83a08675cb684c047a695c")
 
 func applyTransaction(msg *Message, config *params.ChainConfig, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM, receiptProcessors ...ReceiptProcessor) (*types.Receipt, error) {
 	if tx.Hash() == badTx1 || tx.Hash() == badTx2 || tx.Hash() == badTx3 || tx.Hash() == badTx4 ||
-		tx.Hash() == badTxChapel1 {
+		tx.Hash() == badTxChapel1 || tx.Hash() == badTxChapel2 {
 		log.Info("bad hash hit", "blockNumber", blockNumber, "txHash", tx.Hash())
 		evm.EnableOpcodeDump = true
 		statedb.EnableStateDump = true

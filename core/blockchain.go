@@ -2050,8 +2050,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks, setHead bool) (int, error)
 		vtime := time.Since(vstart)
 		proctime := time.Since(start) // processing + validation
 
-		// bad block: 35547779
-		var stopBlock uint64 = 35547779
+		// bad block: 35548081
+		var stopBlock uint64 = 35548081
 		if block.NumberU64() == stopBlock {
 			log.Info("stopBlock hit sleep 30s", "block number:", stopBlock)
 			time.Sleep(30 * time.Second)
