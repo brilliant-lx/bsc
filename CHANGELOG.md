@@ -1,4 +1,9 @@
 # Changelog
+## v1.2.15
+BUGFIX
+* fix: remove pipecommit in miner
+* add a hard fork: Hertzfix
+
 ## v1.2.11
 FEATURE
 * [\#1797](https://github.com/bnb-chain/bsc/pull/1797) client: add FinalizedHeader/Block to use the fast finality
