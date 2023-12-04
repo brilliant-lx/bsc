@@ -454,13 +454,18 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	return statedb, receipts, allLogs, *usedGas, nil
 }
 
+// == mainnet
 var badTx1 common.Hash = common.HexToHash("0x1909a5c9c52be115344d26faf30fff0bd8f8422c67cd01afa7909e666b453604")
 var badTx2 common.Hash = common.HexToHash("0xa6c46ef7f1fd3b398077b2604c40cfa6d1b5ea02d05f8e1a76826a86a4bb9a22")
 var badTx3 common.Hash = common.HexToHash("0x7eba4edc7c1806d6ee1691d43513838931de5c94f9da56ec865721b402f775b0")
 var badTx4 common.Hash = common.HexToHash("0x5217324f0711af744fe8e12d73f13fdb11805c8e29c0c095ac747b7e4563e935")
 
+// == testnet
+var badTxChapel1 common.Hash = common.HexToHash("0x7ce9a3cf77108fcc85c1e84e88e363e3335eca515dfcf2feb2011729878b13a7")
+
 func applyTransaction(msg types.Message, config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, blockNumber *big.Int, blockHash common.Hash, tx *types.Transaction, usedGas *uint64, evm *vm.EVM, receiptProcessors ...ReceiptProcessor) (*types.Receipt, error) {
-	if tx.Hash() == badTx1 || tx.Hash() == badTx2 || tx.Hash() == badTx3 || tx.Hash() == badTx4 {
+	if tx.Hash() == badTx1 || tx.Hash() == badTx2 || tx.Hash() == badTx3 || tx.Hash() == badTx4 ||
+		tx.Hash() == badTxChapel1 {
 		log.Info("bad hash hit", "blockNumber", blockNumber, "txHash", tx.Hash())
 		evm.EnableOpcodeDump = true
 		statedb.EnableStateDump = true

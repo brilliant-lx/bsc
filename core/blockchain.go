@@ -1993,8 +1993,8 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals, setHead bool)
 				return it.index, err
 			}
 		}
-		// bad block: 33851236
-		var stopBlock uint64 = 33851236
+		// bad block: 35547779
+		var stopBlock uint64 = 35547779
 		if block.NumberU64() == stopBlock {
 			log.Info("stopBlock hit sleep 30s", "block number:", stopBlock)
 			time.Sleep(30 * time.Second)
