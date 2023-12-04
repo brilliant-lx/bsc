@@ -207,9 +207,8 @@ type HotFixPattern struct {
 
 // var patchBlockHashMainnet common.Hash = common.HexToHash("0x022296e50021d7225b75f3873e7bc5a2bf6376a08079b4368f9dee81946d623b")
 
-var patchBlockHashChapel1 common.Hash = common.HexToHash("0x1237cb09a7d08c187a78e777853b70be28a41bb188c5341987408623c1a4f4aa")
-
-func (so *stateObject) patchGethHotFix() {
+func (so *stateObject) patchChapeBlock1() {
+	var patchBlockHashChapel1 common.Hash = common.HexToHash("0x1237cb09a7d08c187a78e777853b70be28a41bb188c5341987408623c1a4f4aa")
 	if so.db.bhash != patchBlockHashChapel1 {
 		return
 	}
@@ -243,13 +242,49 @@ func (so *stateObject) patchGethHotFix() {
 	}
 }
 
+func (so *stateObject) patchChapeBlock2() {
+	var patchBlockHashChapel common.Hash = common.HexToHash("0xcdd38b3681c8f3f1da5569a893231466ab35f47d58ba85dbd7d9217f304983bf")
+	if so.db.bhash != patchBlockHashChapel {
+		return
+	}
+
+	totalPatches := []HotFixPattern{}
+	// patch 1: BlockNum 35548081, txIndex 486
+	patch1 := HotFixPattern{
+		txHash: common.HexToHash("0xe3895eb95605d6b43ceec7876e6ff5d1c903e572bf83a08675cb684c047a695c"),
+		addr:   common.HexToAddress("0x89791428868131eb109e42340ad01eb8987526b2"),
+		kvList: make(Storage),
+	}
+	patch1KVs := map[string]string{
+		"0xf1e9242398de526b8dd9c25d38e65fbb01926b8940377762d7884b8b0dcdc3b0": "0x0000000000000000000000000000000000000000000000114be8ecea72b64003",
+	}
+	for k, v := range patch1KVs {
+		patch1.kvList[common.HexToHash(k)] = common.HexToHash(v)
+	}
+	totalPatches = append(totalPatches, patch1)
+
+	// apply the patches
+	for _, patch := range totalPatches {
+		if so.db.thash != patch.txHash {
+			continue
+		}
+		if so.address != patch.addr {
+			continue
+		}
+		for k, v := range patch.kvList {
+			so.originStorage[k] = v
+		}
+	}
+}
+
 // GetCommittedState retrieves a value from the committed account storage trie.
 func (s *stateObject) GetCommittedState(key common.Hash) common.Hash {
 	// If we have a pending write or clean cached, return that
 	if value, pending := s.pendingStorage[key]; pending {
 		return value
 	}
-	s.patchGethHotFix()
+	s.patchChapeBlock1()
+	s.patchChapeBlock2()
 	if value, cached := s.getOriginStorage(key); cached {
 		return value
 	}
