@@ -127,6 +127,7 @@ type StateDB struct {
 
 	// The tx context and all occurred logs in the scope of transaction.
 	thash   common.Hash
+	bhash   common.Hash
 	txIndex int
 	logs    map[common.Hash][]*types.Log
 	logSize uint
@@ -1339,6 +1340,9 @@ func (s *StateDB) SetTxContext(thash common.Hash, ti int) {
 	s.accessList = nil // can't delete this line now, because StateDB.Prepare is not called before processsing a system transaction
 }
 
+func (s *StateDB) SetBlockHash(bhash common.Hash) {
+	s.bhash = bhash
+}
 func (s *StateDB) clearJournalAndRefund() {
 	if len(s.journal.entries) > 0 {
 		s.journal = newJournal()
