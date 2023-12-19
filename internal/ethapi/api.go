@@ -2016,10 +2016,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceiptsByBlockNumber(ctx conte
 	txReceipts := make([]map[string]interface{}, 0, len(txs))
 	for idx, receipt := range receipts {
 		tx := txs[idx]
-		var signer types.Signer = types.FrontierSigner{}
-		if tx.Protected() {
-			signer = types.NewEIP155Signer(tx.ChainId())
-		}
+		signer := types.MakeSigner(s.b.ChainConfig(), block.Number())
 		from, _ := types.Sender(signer, tx)
 
 		fields := map[string]interface{}{
@@ -2034,6 +2031,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceiptsByBlockNumber(ctx conte
 			"contractAddress":   nil,
 			"logs":              receipt.Logs,
 			"logsBloom":         receipt.Bloom,
+			"type":              hexutil.Uint(tx.Type()),
 		}
 
 		// Assign receipt status or post state.
@@ -2107,6 +2105,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionDataAndReceipt(ctx context.Cont
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,
+		"type":              hexutil.Uint(tx.Type()),
 	}
 
 	// Assign receipt status or post state.
