@@ -4,6 +4,30 @@ BUGFIX
 * fix: remove pipecommit in miner
 * add a hard fork: Hertzfix
 
+## v1.2.14
+BUGFIX
+* fix: remove sharedPool
+
+## v1.2.13
+IMPROVEMENT
+* [\#1954](https://github.com/bnb-chain/bsc/pull/1954) performance: keep trie prefetch during validation phase
+
+BUGFIX
+* [\#1950](https://github.com/bnb-chain/bsc/pull/1950) fix: 2 APIs of get receipt related(#1950)
+
+## v1.2.12
+FEATURE
+* [\#1852](https://github.com/bnb-chain/bsc/pull/1852) discov: add hardcoded bootnodes
+
+BUGFIX
+* [\#1844](https://github.com/bnb-chain/bsc/pull/1844) crypto: Update BLST to v0.3.11
+* [\#1854](https://github.com/bnb-chain/bsc/pull/1854) fetcher: no import blocks before or equal to the finalized height
+* [\#1855](https://github.com/bnb-chain/bsc/pull/1855) eth/tracers: trace system tx should add intrinsicGas
+
+IMPROVEMENT
+* [\#1839](https://github.com/bnb-chain/bsc/pull/1839) Update init-network command
+* [\#1858](https://github.com/bnb-chain/bsc/pull/1858) vote: check consensus key match vote key before voting
+
 ## v1.2.11
 FEATURE
 * [\#1797](https://github.com/bnb-chain/bsc/pull/1797) client: add FinalizedHeader/Block to use the fast finality
